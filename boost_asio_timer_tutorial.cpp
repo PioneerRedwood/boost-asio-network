@@ -185,6 +185,7 @@ void timer_5()
 	t.join();
 }
 
+#if 0
 int main()
 {
 	//timer_1();
@@ -193,3 +194,4 @@ int main()
 	//timer_4();
 	timer_5();
 }
+#endif
