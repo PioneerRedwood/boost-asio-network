@@ -1,16 +1,12 @@
-#include <iostream>
-#include <boost/array.hpp>
-#include <boost/asio.hpp>
+// https://www.boost.org/doc/libs/1_76_0/doc/html/boost_asio/tutorial/tutdaytime1.html
+
+#include "boost_asio_tutorial_header.hpp"
 
 using boost::asio::ip::tcp;
 
-/// <summary>
-/// https://www.boost.org/doc/libs/1_76_0/doc/html/boost_asio/tutorial/tutdaytime1.html
-/// </summary>
-/// <param name="argc"></param>
-/// <param name="argv"></param>
 void tcp_daytime_sync_client(int argc, char* argv[])
 {
+	std::cout << "params count: " << argc << "\n";
 	try
 	{
 		if (argc != 2)
@@ -35,7 +31,9 @@ void tcp_daytime_sync_client(int argc, char* argv[])
 			if (error == boost::asio::error::eof)
 			{
 				// if the connection is lost then exit loop
-				break;
+				std::cout << "connection lost from server" << "\n";
+				//break;
+				continue;
 			}
 			else if(error)
 			{
@@ -52,9 +50,10 @@ void tcp_daytime_sync_client(int argc, char* argv[])
 	}
 }
 
-#if 1
+#if 0
 int main(int argc, char* argv[])
 {
+	// set for argv localhost("127.0.0.1")
 	tcp_daytime_sync_client(argc, argv);
 }
 #endif
