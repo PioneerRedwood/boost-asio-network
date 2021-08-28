@@ -1,18 +1,14 @@
-#include "echonet.hpp"
+#include <iostream>
+#include <boost/asio.hpp>
+#include <echonet.hpp>
+#include <echo_server.hpp>
 
-#if 0
 int main()
 {
-	try
-	{
-		boost::asio::io_context io_context;
-		echonet::echo_server server(io_context);
+	boost::asio::io_context io_context;
+	echonet::echo_server server(io_context, 9000);
 
-		io_context.run();
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << e.what() << "\n";
-	}
+	io_context.run();
+
+	return 0;
 }
-#endif

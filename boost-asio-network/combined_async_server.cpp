@@ -124,7 +124,7 @@ namespace combined
 	};
 }
 
-#if 0
+#if 1
 int main()
 {
 	try

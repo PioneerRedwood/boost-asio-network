@@ -1,18 +1,13 @@
-#include "echonet.hpp"
+#include <boost/asio.hpp>
+#include <echonet.hpp>
+#include <echo_client.hpp>
 
-#if 1
 int main()
 {
-	try 
-	{
-		boost::asio::io_context io_context;
-		echonet::echo_client client(io_context, "127.0.0.1");
+	boost::asio::io_context io_context;
+	echonet::echo_client client(io_context, "127.0.0.1", "9000");
 
-		io_context.run();
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << e.what() << "\n";
-	}
+	io_context.run();
+
+	return 0;
 }
-#endif

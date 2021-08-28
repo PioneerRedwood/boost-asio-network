@@ -1,133 +1,65 @@
 /**
 * Simply echoing network framework
-* 
-* 
 */
 
+#pragma once
 #include <iostream>
-#include <boost/bind/bind.hpp>
+#include <ctime>
+
+#include <boost/container/vector.hpp>
+#include <boost/container/deque.hpp>
+#include <boost/unordered_map.hpp>
 #include <boost/array.hpp>
+
+#include <boost/thread/thread.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
 using boost::asio::ip::tcp;
 
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning(disable : 4996)
+#define ECHOING true
+
 namespace echonet
 {
 	namespace common
 	{
-		class connection :
-			public boost::enable_shared_from_this<connection>
+		enum class connection_type {
+			client = 0,
+			server = 1
+		};
+
+		enum { BUFFER_SIZE = 1025 };
+
+		static std::string make_date_string()
+		{
+			std::time_t now = time(0);
+			return ctime(&now);
+		}
+
+		// here we need to use Google::protobuffer
+		class custom_message
 		{
 		public:
-			typedef boost::shared_ptr<connection> pointer;
-
-			static pointer create(boost::asio::io_context& io_context)
+			custom_message()
 			{
-				return pointer(new connection(io_context));
+
 			}
 
-			tcp::socket& socket()
+			void fill_message()
 			{
-				return socket_;
-			}
-
-			void start()
-			{
-				message_ = "Hello echo server!";
-
-				boost::asio::async_write(socket_, boost::asio::buffer(message_),
-					boost::bind(&connection::handle_write, shared_from_this()));
+				str_msgs_.push_back(make_date_string());
 			}
 
 		private:
-			connection(boost::asio::io_context& io_context)
-				: socket_(io_context)
-			{
-
-			}
-
-			void handle_write()
-			{
-				boost::array<char, 128> buf;
-				boost::system::error_code error;
-
-				boost::asio::async_read(socket_, boost::asio::buffer(buf),
-					boost::bind(&connection::start, shared_from_this()));
-
-				// like update() messageQueue if there are data to send, so do it
-				std::cout.write(buf.data(), buf.size());
-			}
-			tcp::socket socket_;
-			std::string message_;
+			boost::container::vector<std::string> str_msgs_;
+			//boost::array<std::string, 64> str_props_;
+			//boost::container::deque<std::string, unsigned, size_t> num_props_;
 		};
-	} // common
 
-
-	class echo_server
-	{
-	public:
-		echo_server(boost::asio::io_context& io_context)
-			: io_context_(io_context),
-			acceptor_(io_context, tcp::endpoint(tcp::v4(), 9000))
-		{
-			start_accept();
-		}
-	private:
-		void start_accept()
-		{
-			common::connection::pointer conn =
-				common::connection::create(io_context_);
-
-			acceptor_.async_accept(conn->socket(),
-				boost::bind(&echo_server::handle_accept, this, conn,
-					boost::asio::placeholders::error));
-
-			std::cout << "async echo server is waiting for connection from client .. \n";
-		}
-
-		void handle_accept(common::connection::pointer conn,
-			const boost::system::error_code& error)
-		{
-			if (!error)
-			{
-				// new connection here broadcasting it
-				conn->start();
-			}
-
-			start_accept();
-		}
-
-		boost::asio::io_context& io_context_;
-		tcp::acceptor acceptor_;
-	};
-
-	class echo_client
-	{
-	public:
-		echo_client(boost::asio::io_context& io_context, const char* address)
-			: io_context_(io_context)
-		{
-			try
-			{
-				tcp::resolver resolver(io_context_);
-				tcp::resolver::results_type endpoints =
-					resolver.resolve(address, "9000");
-				tcp::socket socket(io_context_);
-
-				boost::asio::connect(socket, endpoints);
-
-				common::connection::pointer conn = common::connection::create(io_context_);
-				conn->start();
-			}
-			catch (std::exception& e)
-			{
-				std::cerr << e.what() << "\n";
-			}
-		}
-
-	private:
-		boost::asio::io_context& io_context_;
-	};
+		
+	} // namespace common
 } // namespace echoing

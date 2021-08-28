@@ -5,6 +5,10 @@ VisualStudioVersion = 16.0.31624.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost-asio-network", "boost-asio-network\boost-asio-network.vcxproj", "{2DECF324-1C0F-49C6-BC12-F2CDD5F660C4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost-asio-network-client", "boost-asio-network-client\boost-asio-network-client.vcxproj", "{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost-asio-network-server", "boost-asio-network-server\boost-asio-network-server.vcxproj", "{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +25,22 @@ Global
 		{2DECF324-1C0F-49C6-BC12-F2CDD5F660C4}.Release|x64.Build.0 = Release|x64
 		{2DECF324-1C0F-49C6-BC12-F2CDD5F660C4}.Release|x86.ActiveCfg = Release|Win32
 		{2DECF324-1C0F-49C6-BC12-F2CDD5F660C4}.Release|x86.Build.0 = Release|Win32
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Debug|x64.ActiveCfg = Debug|x64
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Debug|x64.Build.0 = Debug|x64
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Debug|x86.ActiveCfg = Debug|Win32
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Debug|x86.Build.0 = Debug|Win32
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Release|x64.ActiveCfg = Release|x64
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Release|x64.Build.0 = Release|x64
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Release|x86.ActiveCfg = Release|Win32
+		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Release|x86.Build.0 = Release|Win32
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Debug|x64.ActiveCfg = Debug|x64
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Debug|x64.Build.0 = Debug|x64
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Debug|x86.ActiveCfg = Debug|Win32
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Debug|x86.Build.0 = Debug|Win32
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Release|x64.ActiveCfg = Release|x64
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Release|x64.Build.0 = Release|x64
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Release|x86.ActiveCfg = Release|Win32
+		{20EA362B-A276-42BE-8B8A-84E3C43AEDCD}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

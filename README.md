@@ -3,8 +3,9 @@
 boost::asio를 사용한 게임 네트워크 학습 겸 최종 프레임워크 제작이 목표 😎
 
 - server/client 양쪽 데이터 주고 받는 식의 프레임워크 설계/구현
-
 - boost::asio 및 Google protobuf 사용 예정
+
+
 
 ### 2021-08-25 boost::asio Timer tutorial
 
@@ -27,6 +28,8 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
 추신; boost를 따로 다운, CMAKE로 빌드하고 나서 include 파일을 해당 프로젝트에 외부 경로로 등록해보면 될 거 같다.
 -> CMAKE가 아니라 boost 파일 내 bootstrap.bat 파일을 실행(2021-08-26 추가)
 
+
+
 ### Visual Studio 2019 boost 설치 및 디버깅
 
 - boost 재설치 후 bootstarp.bat 을 실행하면 b2.exe 실행 파일 생성
@@ -48,11 +51,20 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
 
 2021-08-27 따로 프로젝트 파일을 만들어서 개별 실행, 튜토리얼 완료
 
-### 2021-08-27 echonet
+
+
+## echonet
+
+#### 2021-08-27 #1
 
 - echonet 이라는 간단하게 서버와 클라이언트 간 에코 날리는 시스템 제작
   - 아직 미완성
 - 필요 및 추가 개선 사항
   - asio 내에서 사용하는 비동기 함수들의 콜백 사용 익숙해질 필요가 있음
   - 서버와 클라이언트의 데이터 전송을 감추는 connection 데이터 전송 래퍼 클래스 설계 중
-    - 기존에 많이 참고했던 [javidx의 네트워크 프레임워크](https://github.com/OneLoneCoder/olcPixelGameEngine/blob/master/Videos/Networking/Parts1%262/net_connection.h) 살펴보는 중
+    - 기존에 많이 참고했던 [javidx9의 네트워크 프레임워크](https://github.com/OneLoneCoder/olcPixelGameEngine/blob/master/Videos/Networking/Parts1%262/net_connection.h) 살펴보는 중
+
+#### 2021-08-28 #2
+
+- 서버와 클라이언트 간 에코 주고 받는 시스템을 만드려고 했는데 javidx9의 네트워크 프레임워크에서 살폈던 설계를 참고하며 구현하는 게 어려움
+- 클라이언트에서 입력 받아 서버에 바로 보내면 되고 서버는 받으면 다시 날려주는 식으로 하면 됨
