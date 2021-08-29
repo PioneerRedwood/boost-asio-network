@@ -5,10 +5,13 @@
 
 int main()
 {
-	boost::asio::io_context io_context;
-	echonet::echo_server server(io_context, 9000);
+	echonet::echo_server server(9000);
+	server.Start();
 
-	io_context.run();
+	while (true)
+	{
+		server.Update(-1, true);
+	}
 
 	return 0;
 }

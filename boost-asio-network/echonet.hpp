@@ -5,33 +5,27 @@
 #pragma once
 #include <iostream>
 #include <ctime>
+#include <thread>
+#include <mutex>
+#include <optional>
 
 #include <boost/container/vector.hpp>
 #include <boost/container/deque.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/array.hpp>
 
-#include <boost/thread/thread.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-using boost::asio::ip::tcp;
-
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable : 4996)
-#define ECHOING true
 
 namespace echonet
 {
 	namespace common
 	{
-		enum class connection_type {
-			client = 0,
-			server = 1
-		};
-
 		enum { BUFFER_SIZE = 1025 };
 
 		static std::string make_date_string()
@@ -40,26 +34,84 @@ namespace echonet
 			return ctime(&now);
 		}
 
-		// here we need to use Google::protobuffer
-		class custom_message
+		template<typename T>
+		class tsdeque
 		{
 		public:
-			custom_message()
+			tsdeque() = default;
+			tsdeque(const tsdeque<T>&) = delete;
+			virtual ~tsdeque() { clear(); }
+		public:
+			const T& front()
 			{
-
+				std::scoped_lock lock(muxDeque_);
+				return deque_.front();
 			}
 
-			void fill_message()
+			const T& back()
 			{
-				str_msgs_.push_back(make_date_string());
+				std::scoped_lock lock(muxDeque_);
+				return deque_.back();
+			}
+
+			T pop_front()
+			{
+				std::scoped_lock lock(muxDeque_);
+				auto t = std::move(deque_.front());
+				deque_.pop_front();
+				return t;
+			}
+
+			T pop_back()
+			{
+				std::scoped_lock lock(muxDeque_);
+				auto t = std::move(deque_.back());
+				deque_.pop_back();
+				return t;
+			}
+
+			void push_back(const T& item)
+			{
+				std::scoped_lock lock(muxDeque_);
+				deque_.emplace_back(std::move(item));
+
+				std::unique_lock<std::mutex> ul(muxBlocking_);
+				cvBlocking_.notify_one();
+			}
+
+			bool empty()
+			{
+				std::scoped_lock lock(muxDeque_);
+				return deque_.empty();
+			}
+
+			size_t count()
+			{
+				std::scoped_lock lock(muxDeque_);
+				return deque_.size();
+			}
+
+			void clear()
+			{
+				std::scoped_lock lock(muxDeque_);
+				deque_.clear();
+			}
+
+			void wait()
+			{
+				while (empty())
+				{
+					std::unique_lock<std::mutex> ul(muxBlocking_);
+					cvBlocking_.wait(ul);
+				}
 			}
 
 		private:
-			boost::container::vector<std::string> str_msgs_;
-			//boost::array<std::string, 64> str_props_;
-			//boost::container::deque<std::string, unsigned, size_t> num_props_;
+			std::mutex muxDeque_;
+			boost::container::deque<T> deque_;
+			std::condition_variable cvBlocking_;
+			std::mutex muxBlocking_;
 		};
 
-		
 	} // namespace common
 } // namespace echoing

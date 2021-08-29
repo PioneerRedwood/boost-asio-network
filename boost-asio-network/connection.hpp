@@ -1,155 +1,178 @@
+#pragma once
 #include "echonet.hpp"
 
 namespace echonet
 {
-namespace common
-{
-	class connection :
-		public boost::enable_shared_from_this<connection>
+	namespace common
 	{
-	public:
-		typedef boost::shared_ptr<connection> pointer;
-
-		static pointer create(boost::asio::io_context& io_context, common::connection_type type)
+		class connection :
+			public boost::enable_shared_from_this<connection>
 		{
-			return pointer(new connection(io_context, type));
-		}
+		public:
+			enum class connection_type {
+				client = 0,
+				server = 1
+			};
 
-		tcp::socket& socket()
-		{
-			return socket_;
-		}
-
-		// starting to read/write with socket
-		void start()
-		{
-			switch (type_)
+		public:
+			connection(boost::asio::io_context& io_context, boost::asio::ip::tcp::socket socket, connection_type type, tsdeque<std::string>& deque)
+				: io_context_(io_context), socket_(std::move(socket)), recv_deque_(deque)
 			{
-			case common::connection_type::client:
-				std::cout << "connection[client] starts to communicate..!\n";
-				client_update();
-				break;
-			case common::connection_type::server:
-				std::cout << "connection[server] starts to communicate..!\n";
-				server_update();
-				break;
-			default:
-				break;
+				type_ = type;
 			}
-		}
 
-		
-	private:
-		connection(boost::asio::io_context& io_context, common::connection_type type)
-			: socket_(io_context), type_(type),
-			timer_(io_context, boost::asio::chrono::milliseconds(500))
-		{
-			
-		}
+			// -- LEGACY --
+			/*typedef boost::shared_ptr<connection> pointer;
 
-		void client_update()
-		{
-			std::cout << "Enter: ";
-			std::getline(std::cin, buf);
-
-			if (std::string(buf.data()).find("exit") == std::string::npos)
+			static pointer create(
+				boost::asio::io_context& io_context, connection_type type)
 			{
-				std::cout << "exit .. \n";
+				return pointer(new connection(io_context, type));
+			}*/
+
+			unsigned GetID() const
+			{
+				return id_;
 			}
-			else
-			{
-				send_deque_.push_front(buf.data());
-				write();
 
-				// append timer expriy and call async_wait again until count_ > 0
-				timer_.expires_at(timer_.expiry() + boost::asio::chrono::milliseconds(500));
-				timer_.async_wait(boost::bind(&connection::client_update, this));
+			boost::asio::ip::tcp::socket& socket()
+			{
+				return socket_;
 			}
-		}
 
-		void server_update()
-		{
-			std::string msg = common::make_date_string();
-			send_deque_.push_front(msg);
-			write();
-
-			// append timer expriy and call async_wait again until count_ > 0
-			timer_.expires_at(timer_.expiry() + boost::asio::chrono::milliseconds(500));
-			timer_.async_wait(boost::bind(&connection::server_update, this));
-		}
-
-		void read()
-		{
-			try
+			void ConnectToClient(unsigned id)
 			{
-				if (!recv_deque_.empty())
+				if (type_ == connection_type::server)
 				{
-					// execute data in recv_deque_
-					std::string message = recv_deque_.back();
-					recv_deque_.pop_back();
-
-					std::cout << message << "\n";
-				}
-
-				boost::asio::async_read(socket_, boost::asio::buffer(buf),
-					boost::bind(&connection::write, this));
-
-				if (buf.size() > 0)
-				{
-					recv_deque_.push_front(buf.data());
-				}
-			}
-			catch (const std::exception& e)
-			{
-				std::cerr << e.what() << "\n";
-				return;
-			}
-		}
-
-		void write()
-		{
-			try
-			{
-				if (!send_deque_.empty())
-				{
-					if (type_ == common::connection_type::server)
+					if (socket_.is_open())
 					{
-						std::string msg = common::make_date_string();
-
-						boost::asio::async_write(socket_, boost::asio::buffer(msg),
-							boost::bind(&connection::read, this));
-					}
-					else if (type_ == common::connection_type::client)
-					{
-						std::string msg = send_deque_.back();
-						send_deque_.pop_back();
-
-						boost::asio::async_write(socket_, boost::asio::buffer(msg),
-							boost::bind(&connection::read, this));
+						id_ = id;
+						Read();
 					}
 				}
-				else
+			}
+
+			void ConnectToServer
+			(const boost::asio::ip::tcp::resolver::results_type& endpoints)
+			{
+				if (type_ == connection_type::client)
 				{
-					std::cout << "send_queue is empty\n";
+					boost::asio::async_connect(socket_, endpoints,
+						[this](std::error_code ec, boost::asio::ip::tcp::endpoint endpoint)
+						{
+							if (!ec)
+							{
+								Read();
+							}
+						});
 				}
 			}
-			catch (const std::exception& e)
+
+			void Disconnect()
 			{
-				std::cerr << e.what() << "\n";
-				return;
+				if (IsConnected())
+				{
+					boost::asio::post(io_context_, [this]() {socket_.close(); });
+				}
 			}
-		}
 
-		tcp::socket socket_;
-		//boost::array<char, BUFFER_SIZE> buf;
-		std::string buf;
-		connection_type type_;
+			bool IsConnected()
+			{
+				return socket_.is_open();
+			}
 
-		boost::asio::steady_timer timer_;
-		unsigned interval = 0;
+			void StartListening()
+			{
 
-		boost::container::deque<std::string> recv_deque_;
-		boost::container::deque<std::string> send_deque_;
-	};
-}
+			}
+
+			void Send(const std::string& msg)
+			{
+				boost::asio::post(io_context_,
+					[this, msg]()
+					{
+						bool bIsMsg = !send_deque_.empty();
+						send_deque_.push_back(msg);
+						if (!bIsMsg)
+						{
+							Write();
+						}
+					});
+			}
+
+		private:
+			void Read()
+			{
+				boost::asio::async_read(socket_, boost::asio::buffer(temp_buf),
+					[this](boost::system::error_code ec, std::size_t length)
+					{
+						if (!ec)
+						{
+							if (temp_buf.size() > 0)
+							{
+								if (type_ == connection_type::server)
+								{
+									// echoing
+									recv_deque_.push_back(temp_buf);
+								}
+								else
+								{
+									// not echoing
+									//recv_deque_.push_back(temp_buf);
+									std::cout << "[client] recv: " << temp_buf << "\n";
+								}
+
+								Read();
+							}
+							else
+							{
+								std::cout << "recv data size is 0\n";
+
+								temp_buf.append("THERE IS NO DATA");
+								send_deque_.push_back(temp_buf);
+								Write();
+							}
+						}
+						else
+						{
+							std::cout << "read fail" << ec.value() << "\n";
+							socket_.close();
+						}
+					});
+			}
+
+			void Write()
+			{
+				boost::asio::async_write(socket_, boost::asio::buffer(&send_deque_.front(), send_deque_.front().size()),
+					[this](std::error_code ec, std::size_t length)
+					{
+						if (!ec)
+						{
+							if (send_deque_.front().size() > 0)
+							{
+								std::cout << send_deque_.front() << "\n";
+								send_deque_.pop_front();
+							}
+							Read();
+						}
+						else
+						{
+							std::cout << "write fail " << ec.value() << "\n";
+							socket_.close();
+						}
+					});
+			}
+
+		private:
+			boost::asio::ip::tcp::socket socket_;
+
+			boost::asio::io_context& io_context_;
+			connection_type type_;
+
+			unsigned id_ = 0;
+			std::string temp_buf;
+			tsdeque<std::string>& recv_deque_;
+			tsdeque<std::string> send_deque_;
+		};
+	}
 }

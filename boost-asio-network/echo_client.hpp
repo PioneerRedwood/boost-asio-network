@@ -2,27 +2,31 @@
 #include "echonet.hpp"
 #include "connection.hpp"
 
+using namespace echonet::common;
+
 namespace echonet
 {
 	class echo_client
 	{
 	public:
-		echo_client(boost::asio::io_context& io_context, const char* address, const char* port)
-			: io_context_(io_context)
-			//timer_(io_context, boost::asio::chrono::milliseconds(500))
+		echo_client(const char* address, const char* port)
 		{
 			try
 			{
-				tcp::resolver resolver(io_context_);
-				tcp::resolver::results_type endpoints = resolver.resolve(address, port);
-				tcp::socket socket(io_context_);
+				// connect to server
+				boost::asio::ip::tcp::resolver resolver(io_context_);
+				boost::asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(address, port);
 
-				boost::asio::connect(socket, endpoints);
+				connection_ = 
+					std::make_unique<connection>(
+						io_context_, 
+						boost::asio::ip::tcp::socket(io_context_),
+						connection::connection_type::client,
+						recv_deque_);
 
-				common::connection::pointer conn =
-					common::connection::create(io_context_, common::connection_type::client);
-				conn->start();
-
+				connection_->ConnectToServer(endpoints);
+				
+				io_context_thread_ = std::thread([this]() { io_context_.run(); });
 			}
 			catch (std::exception& e)
 			{
@@ -30,11 +34,56 @@ namespace echonet
 			}
 		}
 
+		~echo_client()
+		{
+			Disconnect();
+		}
+
+		void Disconnect()
+		{
+			if (IsConnected())
+			{
+				connection_->Disconnect();
+			}
+
+			io_context_.stop();
+
+			if (io_context_thread_.joinable())
+			{
+				io_context_thread_.join();
+			}
+
+			connection_.release();
+		}
+
+		bool IsConnected()
+		{
+			if (connection_->IsConnected())
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		void Send(const std::string& msg)
+		{
+			if (IsConnected())
+			{
+				connection_->Send(msg);
+			}
+		}
+
 	private:
 
-		boost::asio::io_context& io_context_;
+		boost::asio::io_context io_context_;
 
-		/*boost::asio::steady_timer timer_;
-		unsigned count_ = 100;*/
+		std::thread io_context_thread_;
+
+		std::unique_ptr<connection> connection_;
+
+		tsdeque<std::string> recv_deque_;
 	};
 }
