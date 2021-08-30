@@ -25,7 +25,8 @@
     <ClInclude Include="echo_server.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="echo_server.cpp" />
+    <ClCompile Include="popcorntree_echo_client.cpp" />
+    <ClCompile Include="popcorntree_echo_server.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -81,7 +82,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Temp\boost_1_77_0\boost_1_77_0;C:\SDK\boost_1_77_0;C:\Users\Redwood\source\repos\boost-asio-network\boost-asio-network;</ExternalIncludePath>
+    <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Temp\boost_1_77_0\boost_1_77_0;C:\SDK\boost_1_77_0;C:\Users\Redwood\source\repos\boost-asio-network\boost-asio-network;C:\Users\NICE신용정보\source\repos\boost-asio-network\boost-asio-network;</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -99,7 +100,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\SDK\boost_1_77_0;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\SDK\boost_1_77_0;C:\Users\NICE신용정보\source\repos\boost-asio-network\boost-asio-network;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>

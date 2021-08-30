@@ -29,7 +29,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="echo_server.cpp">
+    <ClCompile Include="popcorntree_echo_server.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="popcorntree_echo_client.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
