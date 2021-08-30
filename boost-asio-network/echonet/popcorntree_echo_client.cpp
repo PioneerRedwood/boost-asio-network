@@ -1,24 +1,7 @@
-#include <echonet.hpp>
-#include <boost/lexical_cast.hpp>
-
-std::string make_mill_time_string(boost::asio::chrono::system_clock::time_point& start)
-{
-	using namespace boost::asio::chrono;
-	system_clock::time_point now = system_clock::now();
-
-	//seconds secs = duration_cast<seconds>(now - start);
-	milliseconds millisecs = duration_cast<milliseconds>(now - start);
-
-	return std::to_string(millisecs.count() / 1000) + "s " + std::to_string(millisecs.count() % 1000);
-}
-
-enum class Type
-{
-	server, client
-};
+#include <red/net/red_net.hpp>
 
 template<typename T>
-class Session : public boost::enable_shared_from_this<Session<std::string>>
+class Session : public boost::enable_shared_from_this<Session<T>>
 {
 public:
 
@@ -115,10 +98,6 @@ public:
 		return true;
 	}
 
-	/// <summary>
-	/// server networking update
-	/// </summary>
-	/// <returns></returns>
 	bool Update()
 	{
 		if (socket_.is_open())
@@ -139,6 +118,7 @@ public:
 		}
 	}
 
+	/// Not working
 	void PushData(T data)
 	{
 		vector_.push_back(data);
@@ -159,6 +139,11 @@ private:
 
 	void Send()
 	{
+		if(type_ == Type::server)
+		{
+			break;
+		}
+
 		std::cout << vector_.size() << "\n";
 		T buf;
 		if (!vector_.empty())
@@ -207,7 +192,15 @@ private:
 
 	void Read()
 	{
+		socket_.async_read_some(boost::asio::buffer(data_, max_length),
+		[this](boost::system::error_code ec, std::size_t length 
+		{
+			if (ec)
+			{
+				std::cout << "Disconnect client [" << conn_id_ << "]\n";
 
+			}
+		})
 	}
 
 	void Write(std::size_t length)
@@ -217,7 +210,7 @@ private:
 			{
 				if (!ec)
 				{
-
+					
 				}
 				else
 				{

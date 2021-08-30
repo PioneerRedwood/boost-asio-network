@@ -15,25 +15,17 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="echonet.hpp">
+    <ClInclude Include="red\net\common.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="connection.hpp">
+    <ClInclude Include="red\net\red_net.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="echo_client.hpp">
+    <ClInclude Include="red\net\util.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="echo_server.hpp">
+    <ClInclude Include="client_session.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="popcorntree_echo_server.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="popcorntree_echo_client.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

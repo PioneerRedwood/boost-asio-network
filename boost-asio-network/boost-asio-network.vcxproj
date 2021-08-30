@@ -19,14 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="connection.hpp" />
-    <ClInclude Include="echonet.hpp" />
-    <ClInclude Include="echo_client.hpp" />
-    <ClInclude Include="echo_server.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="popcorntree_echo_client.cpp" />
-    <ClCompile Include="popcorntree_echo_server.cpp" />
+    <ClInclude Include="red\net\common.hpp" />
+    <ClInclude Include="red\net\red_net.hpp" />
+    <ClInclude Include="red\net\util.hpp" />
+    <ClInclude Include="client_session.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

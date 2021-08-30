@@ -1,5 +1,5 @@
 #pragma once
-#include "echonet.hpp"
+#include <echonet/echonet.hpp>
 
 namespace echonet
 {

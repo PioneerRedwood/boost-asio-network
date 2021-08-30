@@ -1,6 +1,6 @@
 #include <boost/asio.hpp>
-#include <echonet.hpp>
-#include <echo_client.hpp>
+#include <echonet/echonet.hpp>
+#include <echonet/echo_client.hpp>
 
 int main()
 {

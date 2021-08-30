@@ -1,7 +1,5 @@
-#include <iostream>
-#include <boost/asio.hpp>
-#include <echonet.hpp>
-#include <echo_server.hpp>
+#include <echonet/echonet.hpp>
+#include <echonet/echo_server.hpp>
 
 int main()
 {

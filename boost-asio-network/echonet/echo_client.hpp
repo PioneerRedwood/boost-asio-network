@@ -1,6 +1,6 @@
 #pragma once
-#include "echonet.hpp"
-#include "connection.hpp"
+#include <echonet/echo_client.hpp>
+#include <echonet/connection.hpp>
 
 using namespace echonet::common;
 
