@@ -95,3 +95,4 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
 - 여전히 서버와 클라이언트 프로세스 진행 중 C++ 기초가 부족함을 느끼고 있지만 계속 해서 구현 중
   - 샘플 코드를 따라 쓰면서 구현한 것들을 자신만의 스타일대로 묶는 것 뿐인데 대체 왜 오류 투성이에 깔끔하지 않은 코드가 돼가는 걸까? 🤢 
   - When will I start "Google protobuf"??
+  - 아무래도 책이 필요하다 무려 [테크니컬 참고 도서](https://github.com/devharsh/Technical-eBooks/blob/master/Boost.Asio%20C%2B%2B%20Network%20Programming.pdf)가 pdf로 😎
