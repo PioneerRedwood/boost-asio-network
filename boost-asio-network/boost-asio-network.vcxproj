@@ -19,10 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="red\net\client_session.hpp" />
     <ClInclude Include="red\net\common.hpp" />
     <ClInclude Include="red\net\red_net.hpp" />
+    <ClInclude Include="red\net\server_session.hpp" />
     <ClInclude Include="red\net\util.hpp" />
-    <ClInclude Include="client_session.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="red_server.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

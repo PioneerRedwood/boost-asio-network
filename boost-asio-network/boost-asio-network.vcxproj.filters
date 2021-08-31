@@ -24,8 +24,16 @@
     <ClInclude Include="red\net\util.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="client_session.hpp">
+    <ClInclude Include="red\net\client_session.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="red\net\server_session.hpp">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="red_server.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
