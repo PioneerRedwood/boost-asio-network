@@ -96,3 +96,12 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
   - 샘플 코드를 따라 쓰면서 구현한 것들을 자신만의 스타일대로 묶는 것 뿐인데 대체 왜 오류 투성이에 깔끔하지 않은 코드가 돼가는 걸까? 🤢 
   - When will I start "Google protobuf"??
   - 아무래도 책이 필요하다 무려 [테크니컬 참고 도서](https://github.com/devharsh/Technical-eBooks/blob/master/Boost.Asio%20C%2B%2B%20Network%20Programming.pdf)가 pdf로 😎
+
+#### 2021-09-01 #6
+
+- 기초부터 다시 잡는다는 생각으로 테크니컬 참고 도서를 정독 중
+
+  - C++ 기초 지식만 부족한게 아니라 프레임워크 개발 경험이 없다보니 아키텍처 설계를 기획하는 과정부터 길을 해메는 중, 
+  - 처음보단 나아지고 있음을 느끼지만 개발은 역시 겸손함을 놓으면 안된다 🙏
+
+  
