@@ -15,7 +15,7 @@
 * 
 * 4) 코드를 수행하며 학습했기 때문에 cpp 코드에 작성하였습니다.
 * 
-* 5) 만약 해당 글이 저작권에 유배가 된다면 알려주시기 바랍니다.
+* 5) 만약 해당 글이 저작권에 위배가 된다면 알려주시기 바랍니다.
 * 
 * Please let me know if there is a problem with copyright.
 */
