@@ -19,12 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BAS_echo_sync_server.cpp" />
-    <ClCompile Include="ch04_async_client_01.cpp" />
-    <ClCompile Include="ch04_async_server_01.cpp" />
-    <ClCompile Include="ch04_introduce.cpp" />
-    <ClCompile Include="ch04_sync_client_01.cpp" />
-    <ClCompile Include="ch04_sync_server_01.cpp" />
+    <ClCompile Include="boost-asio-async-server.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

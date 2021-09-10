@@ -17,6 +17,7 @@ Boost.Asio에서 do_read() 후 on_read()가 호출되는 논리적인 흐름이 
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 
 using namespace boost::asio;
 
@@ -43,9 +44,9 @@ public:
 	using error_code = boost::system::error_code;
 	using ptr = boost::shared_ptr<talk_to_svr>;
 
-	static ptr start(ip::tcp::endpoint ep, const std::string& username)
+	static ptr start(ip::tcp::endpoint ep, const std::string& username, io_context& context)
 	{
-		ptr new_(new talk_to_svr(username));
+		ptr new_(new talk_to_svr(username, context));
 		new_->start(ep);
 		return new_;
 	}
@@ -78,7 +79,7 @@ private:
 	{
 		if (!err)
 		{
-			do_write("login " + username + "\n");
+			do_write("login " + username_ + "\n");
 		}
 		else
 		{
@@ -88,6 +89,9 @@ private:
 
 	void on_read(const error_code& err, size_t bytes)
 	{
+		// 두 가지 훌륭한 검사를 수행
+		// 1. 에러가 났으면 멈춤
+		// 2. 멈춘 상태 혹은 멈췄으면 메시지 읽지 않고 리턴
 		if (err)
 		{
 			stop();
@@ -141,8 +145,55 @@ private:
 		postpone_ping();
 	}
 
+	void do_ping()
+	{
+		do_write("ping\n");
+	}
 
+	// 핑을 연기한다(?)
+	// 7초 내 랜덤한 초 뒤에 서버로 핑
+	void postpone_ping()
+	{
+		timer_.expires_from_now(boost::posix_time::millisec(rand() % 7000));
+		timer_.async_wait(MEM_FN(do_ping));
+	}
 
+	void do_ask_clients()
+	{
+		do_write("ask_clients\n");
+	}
+
+	void on_write(const error_code& err, size_t bytes)
+	{
+		do_read();
+	}
+
+	void do_read()
+	{
+		async_read(sock_, buffer(read_buffer_),
+			MEM_FN2(read_complete, placeholders::error, placeholders::bytes_transferred),
+			MEM_FN2(on_read, placeholders::error, placeholders::bytes_transferred));
+	}
+
+	void do_write(const std::string& msg)
+	{
+		if (!started())
+		{
+			return;
+		}
+
+		std::copy(msg.begin(), msg.end(), write_buffer_);
+		sock_.async_write_some(buffer(write_buffer_, msg.size()),
+			MEM_FN2(on_write, placeholders::error, placeholders::bytes_transferred));
+	}
+
+	/*
+	모든 read 명령에서 ping이 발생함
+		- 만약 read 명령이 처리되면 on_read()가 호출
+		- on_read() 는 on_login(), on_ping() 혹은 on_clients()로 분기
+		- 각 호출된 함수들은 핑과 클라이언트로부터의 요청을 
+		- 클라이언트로부터의 요청이 오면 read 명령을 받은 뒤 핑을 연기한다
+	*/
 private:
 	ip::tcp::socket sock_;
 	enum{max_msg = 1024};
@@ -150,6 +201,6 @@ private:
 	char write_buffer_[max_msg];
 	bool started_;
 	std::string username_;
-	// 추가적으로 deadline_timer가 보이지만 이는 랜덤한 초마다 서버에 핑을 보낸다
+	// 추가적으로 deadline_timer가 있는데 이는 랜덤한 초마다 서버에 핑을 보낸다
 	deadline_timer timer_;
 };
