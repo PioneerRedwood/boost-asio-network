@@ -24,13 +24,14 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/bind/bind.hpp>
 
 using namespace boost::asio;
 
 /*
 문제점;
-	- 서버 클래스와 서버 클래스 내부에서 동작하는 
-		소켓과 버퍼를 소유하고 있는 shared_ptr의 래퍼 클래스에서 
+	- 서버 클래스와 서버 클래스 내부에서 동작하는
+		소켓과 버퍼를 소유하고 있는 shared_ptr의 래퍼 클래스에서
 		서버에서 갖고 있을 만한 데이터를 접근?
 */
 
@@ -38,15 +39,19 @@ class server_connection;
 using array = std::vector<boost::shared_ptr<server_connection>>;
 array clients;
 
+#define BIND(x)				boost::bind(&self_type::x, shared_from_this())
+#define BIND1(x,y)			boost::bind(&self_type::x, shared_from_this(), y)
+#define BIND2(x,y,z)		boost::bind(&self_type::x, shared_from_this(), y, z)
+
 class server_connection
 	: public boost::enable_shared_from_this<server_connection>
 	, boost::noncopyable
 {
 private:
 	ip::tcp::socket socket_;
-	enum { msg_size = 1024 };
-	char read_buffer_[msg_size];
-	char write_buffer_[msg_size];
+	enum { max_msg = 1024 };
+	char read_buffer_[max_msg];
+	char write_buffer_[max_msg];
 
 	bool started_ = false;
 	std::string username_ = "";
@@ -56,6 +61,7 @@ private:
 	bool clients_changed_ = false;
 
 public:
+	using self_type = server_connection;
 	using conn_ptr = boost::shared_ptr<server_connection>;
 	using error_code = boost::system::error_code;
 
@@ -63,11 +69,13 @@ public:
 	server_connection(io_context& context, const std::string& username)
 		: socket_(context), started_(true), username_(username), ping_timer_(context), print_clients_timer_(context)
 	{
-
+		// C26495
+		//std::fill_n(read_buffer_, max_msg, '\0');
+		//std::fill_n(write_buffer_, max_msg, '\0');
 	}
 
 	// io_context의 참조 타입 변수와 통신 시 쓸 이름이 요구됨
-	static conn_ptr new_(io_context& context, const std::string& username)
+	static conn_ptr create(io_context& context, const std::string& username)
 	{
 		conn_ptr new_(new server_connection(context, username));
 		return new_;
@@ -80,7 +88,7 @@ public:
 		//clients.push_back(shared_from_this());
 		last_ping_ = boost::posix_time::microsec_clock::local_time();
 		do_read();
-		do_print_clients();
+		//do_print_clients();
 	}
 
 	void stop()
@@ -93,7 +101,7 @@ public:
 		started_ = false;
 		socket_.close();
 
-		conn_ptr self = shared_from_this();
+		//conn_ptr self = shared_from_this();
 		// 서버
 		// array::iterator iter = std::find(clients.begin(), clients.end(), self);
 		// clients.erase(iter);
@@ -121,10 +129,19 @@ public:
 	}
 
 private:
+#pragma region CALLBACK HANDLER
 	void on_read(const error_code& err, size_t bytes)
 	{
-		if (err) stop();
-		if (!started()) return;
+		if (err)
+		{
+			std::cerr << "[ERROR] " << err << " " << err.message() << "\n";
+			stop();
+		}
+
+		if (!started())
+		{
+			return;
+		}
 
 		std::string msg(read_buffer_, bytes);
 		if (msg.find("login") != std::string::npos)
@@ -165,47 +182,9 @@ private:
 		do_write("clients " + msg + "\n");
 	}
 
-private:
-	void do_ping()
-	{
-		do_write("ping\n");
-	}
-
-	void do_ask_clients()
-	{
-		do_write("ask_clients\n");
-	}
-
 	void on_write(const error_code& err, size_t bytes)
 	{
 		do_read();
-	}
-
-	void do_read()
-	{
-		async_read(socket_, buffer(read_buffer_),
-			boost::bind(&server_connection::read_complete, placeholders::error, placeholders::bytes_transferred),
-			boost::bind(&server_connection::on_read, placeholders::error, placeholders::bytes_transferred));
-		post_check_ping();
-	}
-
-	void do_write(const std::string& msg)
-	{
-		if (!started())
-		{
-			return;
-		}
-
-		std::copy(msg.begin(), msg.end(), write_buffer_);
-		async_write(socket_, buffer(write_buffer_, msg.size()),
-			boost::bind(&server_connection::on_write, placeholders::error, placeholders::bytes_transferred));
-	}
-
-	size_t read_complete(const error_code& err, size_t bytes)
-	{
-		if (err) return 0;
-		bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
-		return found ? 0 : 1;
 	}
 
 	void on_check_ping()
@@ -218,14 +197,14 @@ private:
 		last_ping_ = boost::posix_time::microsec_clock::local_time();
 	}
 
-	void post_check_ping()
-	{
-		ping_timer_.expires_from_now(boost::posix_time::millisec(5000));
-		ping_timer_.async_wait(boost::bind(&server_connection::on_check_ping));
-	}
-
 	void on_print_clients()
 	{
+		if (clients.empty())
+		{
+			do_print_clients();
+			return;
+		}
+
 		// 일단 last_ping_이랑 같이 씀
 		boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
 		if ((now - last_ping_).total_microseconds() > 2000)
@@ -240,42 +219,150 @@ private:
 		// 타이머 따로 둬야하는가?
 		do_print_clients();
 	}
+#pragma endregion
+
+#pragma region COMPLETE HANDLER
+	size_t read_complete(const error_code& err, size_t bytes)
+	{
+		if (err) return 0;
+		bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
+		return found ? 0 : 1;
+	}
+#pragma endregion
+
+private:
+#pragma region ASYNC FUNCTION
+	void do_ping()
+	{
+		do_write("ping\n");
+	}
+
+	void do_ask_clients()
+	{
+		do_write("ask_clients\n");
+	}
+
+	void do_read()
+	{
+		//async_read(socket_, buffer(read_buffer_),
+		//	boost::bind(&server_connection::read_complete, placeholders::error, placeholders::bytes_transferred),
+		//	boost::bind(&server_connection::on_read, placeholders::error, placeholders::bytes_transferred));
+		//std::cout << "read_buffer_: " << read_buffer_ << "\n";
+
+		async_read(socket_, buffer(read_buffer_),
+			BIND2(read_complete, _1, _2),
+			BIND2(on_read, _1, _2));
+		post_check_ping();
+	}
+
+	void do_write(const std::string& msg)
+	{
+		if (!started())
+		{
+			return;
+		}
+
+		std::copy(msg.begin(), msg.end(), write_buffer_);
+		async_write(socket_, buffer(write_buffer_, msg.size()),
+			BIND2(on_write, _1, _2));
+	}
+
+	void post_check_ping()
+	{
+		ping_timer_.expires_from_now(boost::posix_time::millisec(5000));
+		ping_timer_.async_wait(BIND(on_check_ping));
+	}
 
 	void do_print_clients()
 	{
 		// 5초 뒤 출력
 		print_clients_timer_.expires_from_now(boost::posix_time::millisec(5000));
-		print_clients_timer_.async_wait(boost::bind(&server_connection::on_print_clients));
+		print_clients_timer_.async_wait(BIND(on_print_clients));
 	}
+#pragma endregion
+
 };
 
 class server_interface
 {
 	array clients_;
+	io_context context_;
+	//io_context& context_;
+	ip::tcp::acceptor acceptor_;
+	std::string& server_name_;
+
 public:
+	using error_code = boost::system::error_code;
 	array get_clients() { return clients_; };
 
+	//server_interface(io_context& context, array& clients, std::string& server_name)
+	//	: clients_(clients), context_(context), acceptor_(context, ip::tcp::endpoint(ip::tcp::v4(), 9000)), server_name_(server_name)
+	server_interface(array& clients, std::string& server_name)
+		: clients_(clients), acceptor_(context_, ip::tcp::endpoint(ip::tcp::v4(), 9000)), server_name_(server_name)
+	{
+		do_accept();
+		context_.run();
+	}
+
+	void on_accept(server_connection::conn_ptr ptr, const error_code& error)
+	{
+		if (error)
+		{
+			std::cout << "[SERVER] accept failed ..\n";
+		}
+		else
+		{
+			ptr->start();
+			std::cout << "[SERVER] client connected..\n";
+			//std::cout << ptr->started() << " ?\n";
+		}
+		do_accept();
+	}
+
+	void do_accept()
+	{
+		server_connection::conn_ptr ptr = server_connection::create(context_, server_name_);
+		//std::cout << "socket open? " << ptr->socket().is_open() << "\n";
+
+		acceptor_.async_accept(ptr->socket(),
+			boost::bind(&server_interface::on_accept, this, ptr, _1));
+	}
 };
 
+// 다음의 에러를 발견할 수 있었다.
+// 잘못된 파일 핸들 오류를 낸다.
+// 네트워크 연결이 로컬 시스템에 의해 취소되었습니다. 
+
+std::string server_name;
 io_context context;
 ip::tcp::acceptor acceptor(context, ip::tcp::endpoint(ip::tcp::v4(), 9000));
 
-void handle_accept(server_connection::conn_ptr client, const boost::system::error_code& err)
+void handle_accept(server_connection::conn_ptr client, const boost::system::error_code& code)
 {
 	client->start();
-	server_connection::conn_ptr new_client = server_connection::new_(context, "red");
+	server_connection::conn_ptr new_client = server_connection::create(context, server_name);
 	acceptor.async_accept(new_client->socket(),
 		boost::bind(handle_accept, new_client, _1));
 }
 
-// 일단 서버 역할을 수행하는 함수
 int main()
 {
-	server_connection::conn_ptr server = server_connection::new_(context, "red");
-	acceptor.async_accept(server->socket(),
-		boost::bind(handle_accept, server, _1));
-	context.run();
-}
+#if 0
+	std::string server_name;
+	std::cout << "Enter the server name\n>>";
+	std::cin >> server_name;
 
-// 2021-09-10 미완성.
-// server_connection과 server_interface의 역할을 명확하게 나눠야 함
+	server_interface server(clients, server_name);
+#else 
+	std::cout << "Enter the server name\n>>";
+	std::cin >> server_name;
+
+	server_connection::conn_ptr client = server_connection::create(context, server_name);
+	acceptor.async_accept(client->socket(),
+		boost::bind(handle_accept, client, _1));
+
+	context.run();
+	
+#endif
+	std::cout << "server exit..\n";
+}
