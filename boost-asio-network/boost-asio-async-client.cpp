@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -99,14 +99,17 @@ private:
 
 		if (msg.find("login ") == 0)
 		{
+			std::cout << "[CLIENT] login " << socket_.remote_endpoint() << "\n";
 			on_login();
 		}
-		else if (msg.find("ping") == 0)
+		else if (msg.find("ping ") == 0)
 		{
+			std::cout << "[CLIENT] ping " << socket_.remote_endpoint() << "\n";
 			on_ping(msg);
 		}
-		else if (msg.find("clients") == 0)
+		else if (msg.find("clients ") == 0)
 		{
+			std::cout << "[CLIENT] clients " << socket_.remote_endpoint() << "\n";
 			on_clients(msg);
 		}
 	}
@@ -152,10 +155,10 @@ private:
 		do_write("ping\n");
 	}
 
-	// 핑 연기 실행
+	// 지연 핑
 	void postpone_ping()
 	{
-		timer_.expires_from_now(boost::posix_time::millisec(rand() % 7000));
+		timer_.expires_from_now(boost::posix_time::millisec(100));
 		timer_.async_wait(BIND(do_ping));
 	}
 
@@ -178,6 +181,7 @@ private:
 			return;
 		}
 
+		std::cout << "send to server " << msg;
 		std::copy(msg.begin(), msg.end(), write_buffer_);
 		socket_.async_write_some(buffer(write_buffer_, msg.size()),
 			BIND2(on_write, placeholders::error, placeholders::bytes_transferred));
@@ -194,18 +198,21 @@ private:
 	char read_buffer_[max_msg];
 	char write_buffer_[max_msg];
 };
-
+#if 1
 int main()
 {
-	std::cout << "서버와 통신할 이름을 입력하십시오. \n>>";
-	std::string username;
-	std::cin >> username;
+	//std::cout << "서버와 통신할 이름을 입력하십시오. \n>>";
+	//std::string username;
+	std::string username("red");
+	//std::cin >> username;
 
 	io_context context;
-
-	client_connection::conn_ptr ptr = client_connection::new_(ip::tcp::endpoint(ip::make_address("127.0.0.1"), 9000), username, context);
+	
+	client_connection::conn_ptr ptr = 
+		client_connection::new_(ip::tcp::endpoint(ip::make_address("127.0.0.1"), 9000), username, context);
 	context.run();
 
-	std::cout << "서버와의 연결이 종료되었습니다. 종료 ..\n";
+	std::cout << "[CLIENT] connection exit ..\n";
 	return 0;
 }
+#endif
