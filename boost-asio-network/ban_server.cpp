@@ -11,9 +11,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio/placeholders.hpp>
 
-class server;
-class client;
-
 class node
 {
 protected:
@@ -21,31 +18,16 @@ protected:
 	unsigned id_;
 
 protected:
-	void run()
-	{
-		context_.run();
-	}
+	void run() { context_.run(); }
 
-	void stop()
-	{
-		context_.stop();
-	}
+	void stop() { context_.stop(); }
 
-	node& self()
-	{
-		return *this;
-	}
+	node& self() { return *this; }
 
 public:
-	unsigned get_id()
-	{
-		return id_;
-	}
+	unsigned get_id() { return id_; }
 
-	void set_id(unsigned id)
-	{
-		id_ = id;
-	}
+	void set_id(unsigned id) { id_ = id; }
 };
 
 class connection
@@ -67,25 +49,29 @@ private:
 
 	bool started_ = false;
 	owner own_;
-	node& node_;
 
 public:
-	connection(boost::asio::io_context& context, connection::owner own, node& node)
-		: socket_(context), own_(own), node_(node)
-	{
+	connection(boost::asio::io_context& context, connection::owner own)
+		: socket_(context), own_(own) {}
 
+	bool started() const { return started_; }
+
+	boost::asio::ip::tcp::socket& socket() { return socket_; }
+
+	// server
+	void start()
+	{
+		started_ = true;
+		// server
+		if (own_ == owner::server)
+		{
+			// 서버가 멈춤..
+			// 비동기 작업을 추가해줄 필요가 있음
+			read();
+		}
 	}
 
-	bool started() const
-	{
-		return started_;
-	}
-
-	boost::asio::ip::tcp::socket& socket()
-	{
-		return socket_;
-	}
-
+	// client
 	void start(boost::asio::ip::tcp::endpoint ep)
 	{
 		started_ = true;
@@ -111,6 +97,8 @@ public:
 		// server
 		if (own_ == owner::server)
 		{
+			// 서버가 멈춤..
+			// 비동기 작업을 추가해줄 필요가 있음
 			read();
 		}
 	}
@@ -127,9 +115,11 @@ public:
 	{
 		write(msg + "\n");
 	}
+
 private:
 	void on_message(const std::string& msg)
 	{
+#if 0
 		// client
 		if (own_ == owner::client)
 		{
@@ -162,31 +152,62 @@ private:
 			else if (msg.find("clients ") == 0)
 			{
 				std::string clients = msg.substr(8);
+				std::cout << clients << "\n";
+				write("ping\n");
+			}
+			else if (msg.find("heartbeat") == 0)
+			{
 				write("ping\n");
 			}
 		}
-
-		if (own_ == owner::server)
+#endif
+		// server
+		if ((own_ == owner::server))
 		{
 			std::cout << "[SERVER] received msg " << msg;
+
 			if (msg.find("hi") == 0)
 			{
-				write("hi " + node_.get_id() + '\n');
+				write("hi ok\n");
 			}
-			else if (msg.find("ping ") == 0)
+			else if (msg.find("ping") == 0)
 			{
 				write("ping ok\n");
 			}
-			else if (msg.find("clients ") == 0)
+			else if (msg.find("ask_clients") == 0)
 			{
 				// send to client connected clients info
-
+				std::string str_msg = std::string(write_buffer_);
+				write(str_msg);
 			}
+			else if (msg.find("KEY") == 0)
+			{
+				std::cout << msg << "\n";
+			}
+			read();
 		}
+	}
+
+	void on_read(const err& error, size_t bytes)
+	{
+		if (error)
+		{
+			std::cout << "[ERROR] async_read\n" << error.message();
+			stop();
+		}
+
+		if (!started_)
+		{
+			return;
+		}
+
+		std::string msg(read_buffer_, bytes);
+		on_message(msg);
 	}
 
 	void read()
 	{
+#if 0
 		async_read(socket_, boost::asio::buffer(read_buffer_),
 			// completion condition
 			// 반드시 lambda [this](const err& error, size_t bytes) -> bool (return type); 명시할 것
@@ -206,65 +227,88 @@ private:
 					std::cout << "[ERROR] async_read\n";
 					stop();
 				}
+
 				if (!started_)
 				{
 					return;
 				}
 
 				std::string msg(read_buffer_, bytes);
-
 				on_message(msg);
 			});
+#endif
+		if (socket_.is_open())
+		{
+			std::cout << "[DEBUG] read\n";
+			async_read(socket_, boost::asio::buffer(read_buffer_),
+				boost::bind(&connection::on_read, shared_from_this(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+		}
+		else
+		{
+			std::cout << "socket_ is not open\n";
+			stop();
+		}
+	}
+
+	void on_write(const err& error, size_t bytes)
+	{
+		if (error)
+		{
+			std::cout << "[ERROR] async_write\n";
+		}
+		else
+		{
+			std::cout << write_buffer_;
+			read();
+		}
 	}
 
 	void write(const std::string& msg)
 	{
 		if (!started_)
 		{
+			std::cout << "exit .. \n";
 			return;
 		}
 
 		std::copy(msg.begin(), msg.end(), write_buffer_);
-		socket_.async_write_some(boost::asio::buffer(write_buffer_, msg.size()),
-			// handler
-			[this](const err& error, size_t bytes) -> void {
-				read();
-			});
-	}
 
-	void set_send_msg(const std::string& msg)
-	{
-		// store msg into thread-safe data structure
-		std::copy(msg.begin(), msg.end(), write_buffer_);
+		socket_.async_write_some(boost::asio::buffer(write_buffer_, msg.size()),
+			boost::bind(&connection::on_write, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
 };
 
-class server : public node
+class server
 {
-public:
-	using conn_ptr = boost::shared_ptr<connection>;
 private:
-	//?
+	boost::asio::io_context& context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
-	conn_ptr conn_;
-	std::unordered_map<unsigned, conn_ptr> conn_map_;
+
+	boost::shared_ptr<connection> conn_;
+	//std::unordered_map<unsigned, conn_ptr> conn_map_;
 
 	unsigned curr_id_;
 	unsigned max_id_ = UINT_MAX;
 
 	std::string buffer_;
+	std::thread thr;
 
-
+	boost::asio::deadline_timer check_timer_;
 public:
-	server(boost::asio::ip::port_type port)
-		: acceptor_(node::context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
-	{
+	server(boost::asio::io_context& context, boost::asio::ip::port_type port)
+		: context_(context),
+		acceptor_(context,
+			boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)), 
+		check_timer_(context) {}
 
-	}
-
-	virtual ~server()
+	~server()
 	{
-		stop();
+		context_.stop();
+
+		if (thr.joinable()) { thr.join(); }
+		conn_->stop();
+
+		std::cout << "[SERVER] exit\n";
 	}
 
 	bool start()
@@ -272,8 +316,9 @@ public:
 		try
 		{
 			accept();
+			check();
 
-			node::run();
+			//thr = std::thread([this]() { context_.run(); });
 		}
 		catch (const std::exception& exception)
 		{
@@ -287,30 +332,34 @@ public:
 
 	void stop()
 	{
-		node::context_.stop();
-
 		std::cout << "[SERVER] stopped\n";
+		context_.stop();
 	}
 
 public:
 	// 일단 클라이언트 목록 전송
-	void send()
+	void send_clients()
 	{
-		if (conn_map_.empty())
-		{
-			return;
-		}
-		buffer_.clear();
+		//if (conn_map_.empty())
+		//{
+		//	return;
+		//}
+		//buffer_.clear();
 
-		std::cout << "[SERVER] print clients { ";
-		for (const auto client : conn_map_)
-		{
-			std::cout << "[" << client.first << "]";
-			buffer_.append("[" + client.first + ']');
-		}
-		std::cout << " }\n";
+		//buffer_.append("clients ");
+		////std::cout << "[SERVER] print clients { ";
+		//for (const auto client : conn_map_)
+		//{
+		//	//std::cout << "[" << client.first << "]";
+		//	buffer_.append("[" + std::to_string(client.first) + ']');
+		//}
 
-		conn_->send(buffer_ + "\n");
+		////std::cout << " }\n";
+		//conn_->send(buffer_);
+
+		// buffer_ will be like this
+		// clients [0][1] ... (\n)
+		//std::cout << buffer_;
 	}
 
 	void broadcast()
@@ -323,10 +372,12 @@ public:
 
 	}
 
-private:
+public:
 	void accept()
 	{
-		conn_ = boost::make_shared<connection>(node::context_, connection::owner::server, node::self());
+		conn_ = boost::make_shared<connection>(
+			context_, connection::owner::server
+			);
 
 		acceptor_.async_accept(conn_->socket(),
 			boost::bind(&server::on_accept, this, boost::asio::placeholders::error));
@@ -344,8 +395,9 @@ private:
 			if (on_connect(conn_) && ((curr_id_ + 1) < max_id_))
 			{
 				std::cout << "[SERVER] new connection ! ID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
-				conn_map_.insert(std::make_pair(curr_id_++, conn_));
-				send();
+				//conn_map_.insert(std::make_pair(curr_id_++, conn_));
+				conn_->start();
+				//send_clients();
 			}
 			else
 			{
@@ -355,18 +407,39 @@ private:
 		accept();
 	}
 
+	void check()
+	{
+		check_timer_.expires_from_now(boost::posix_time::millisec(2000));
+		check_timer_.async_wait(
+			[&](const boost::system::error_code& err){
+				if (err)
+				{
+					std::cout << "[ERROR] check_timer " << err.message() << "\n";
+				}
+
+				if ((conn_->socket().is_open()) && (conn_ != nullptr))
+				{
+					std::cout << "connection is alive .. \n";
+				}
+
+				//std::cout << "connected clients size " << conn_map_.size() << "\n";
+
+				check();
+			});
+	}
+
 protected:
-	virtual bool on_connect(conn_ptr client)
+	virtual bool on_connect(boost::shared_ptr<connection> client)
 	{
 		return true;
 	}
 
-	virtual void on_disconnect(conn_ptr client)
+	virtual void on_disconnect(boost::shared_ptr<connection> client)
 	{
 
 	}
 
-	virtual void on_message(conn_ptr, const std::string& msg)
+	virtual void on_message(boost::shared_ptr<connection>, const std::string& msg)
 	{
 
 	}
@@ -374,8 +447,11 @@ protected:
 
 int main()
 {
-	server s(9000);
+	boost::asio::io_context context;
+	server s(context, 9000);
 	s.start();
+
+	context.run();
 
 	return 0;
 }
