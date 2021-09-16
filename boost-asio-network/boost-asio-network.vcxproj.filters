@@ -16,7 +16,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ban_server.cpp">
-      <Filter>리소스 파일</Filter>
+      <Filter>소스 파일</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="server_connection.hpp">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ban_server.hpp">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

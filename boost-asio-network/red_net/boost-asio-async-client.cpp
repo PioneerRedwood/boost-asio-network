@@ -1,3 +1,4 @@
+#if 0
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -198,7 +199,8 @@ private:
 	char read_buffer_[max_msg];
 	char write_buffer_[max_msg];
 };
-#if 1
+
+
 int main()
 {
 	//std::cout << "서버와 통신할 이름을 입력하십시오. \n>>";

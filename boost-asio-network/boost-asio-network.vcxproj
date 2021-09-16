@@ -21,6 +21,10 @@
   <ItemGroup>
     <ClCompile Include="ban_server.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ban_server.hpp" />
+    <ClInclude Include="server_connection.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
