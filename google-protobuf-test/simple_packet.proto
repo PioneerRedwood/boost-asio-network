@@ -1,0 +1,42 @@
+syntax = "proto2";
+
+package rednet;
+
+message SimplePacket
+{
+	required int32 id = 1;
+	required string now_time = 2;
+
+	enum ObjectType
+	{
+		TERRRAIN = 0;
+		ITEM = 1;
+		MONSTER = 2;
+		PLAYER = 3;
+		NPC = 4;
+		AURA = 5;
+	}
+	required ObjectType object_type = 3;
+
+	enum UpdateType
+	{
+		FIXED = 0;
+		DYNAMIC = 1;
+		LATE = 2;
+	}
+	required UpdateType update_type = 4;
+
+	message State
+	{
+		enum StateType
+		{
+			NONE = 0;
+			ALIVE = 1;
+			DEAD = 2;
+		}
+
+		required StateType type = 1;
+		required string changed_time = 2;
+	}
+	required State state = 5;
+}

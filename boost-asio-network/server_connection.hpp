@@ -57,7 +57,7 @@ public:
 		started_ = false;
 		socket_.close();
 
-		std::cout << "connection is stopped\n";
+		std::cout << "\n[SERVER] connection is stopped\n";
 	}
 
 	void send(const std::string& msg)

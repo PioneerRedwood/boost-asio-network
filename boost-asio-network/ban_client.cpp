@@ -54,7 +54,7 @@ int main()
 
 				if (msg.size() > 0)
 				{
-					std::cout << msg << " ";
+					//std::cout << msg << " ";
 				}
 				c.get_recv_deque().pop_front();
 

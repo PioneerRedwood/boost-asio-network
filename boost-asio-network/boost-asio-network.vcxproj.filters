@@ -20,10 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="server_connection.hpp">
+    <ClInclude Include="ban_server.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ban_server.hpp">
+    <ClInclude Include="server_connection.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
