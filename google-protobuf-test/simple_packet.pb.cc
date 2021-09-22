@@ -60,6 +60,7 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_simple_5fpacket_2eproto::offse
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::rednet::SimplePacket_State, type_),
   PROTOBUF_FIELD_OFFSET(::rednet::SimplePacket_State, changed_time_),
   1,
@@ -69,6 +70,7 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_simple_5fpacket_2eproto::offse
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::rednet::SimplePacket, id_),
   PROTOBUF_FIELD_OFFSET(::rednet::SimplePacket, now_time_),
   PROTOBUF_FIELD_OFFSET(::rednet::SimplePacket, object_type_),
@@ -81,8 +83,8 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_simple_5fpacket_2eproto::offse
   1,
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, 7, sizeof(::rednet::SimplePacket_State)},
-  { 9, 19, sizeof(::rednet::SimplePacket)},
+  { 0, 8, -1, sizeof(::rednet::SimplePacket_State)},
+  { 10, 21, -1, sizeof(::rednet::SimplePacket)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -112,10 +114,8 @@ const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_simple
   schemas, file_default_instances, TableStruct_simple_5fpacket_2eproto::offsets,
   file_level_metadata_simple_5fpacket_2eproto, file_level_enum_descriptors_simple_5fpacket_2eproto, file_level_service_descriptors_simple_5fpacket_2eproto,
 };
-PROTOBUF_ATTRIBUTE_WEAK ::PROTOBUF_NAMESPACE_ID::Metadata
-descriptor_table_simple_5fpacket_2eproto_metadata_getter(int index) {
-  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_simple_5fpacket_2eproto);
-  return descriptor_table_simple_5fpacket_2eproto.file_level_metadata[index];
+PROTOBUF_ATTRIBUTE_WEAK const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable* descriptor_table_simple_5fpacket_2eproto_getter() {
+  return &descriptor_table_simple_5fpacket_2eproto;
 }
 
 // Force running AddDescriptors() at dynamic initialization time.
@@ -213,10 +213,13 @@ class SimplePacket_State::_Internal {
   }
 };
 
-SimplePacket_State::SimplePacket_State(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
+SimplePacket_State::SimplePacket_State(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor();
-  RegisterArenaDtor(arena);
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
   // @@protoc_insertion_point(arena_constructor:rednet.SimplePacket.State)
 }
 SimplePacket_State::SimplePacket_State(const SimplePacket_State& from)
@@ -226,7 +229,7 @@ SimplePacket_State::SimplePacket_State(const SimplePacket_State& from)
   changed_time_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (from._internal_has_changed_time()) {
     changed_time_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_changed_time(), 
-      GetArena());
+      GetArenaForAllocation());
   }
   type_ = from.type_;
   // @@protoc_insertion_point(copy_constructor:rednet.SimplePacket.State)
@@ -239,12 +242,13 @@ type_ = 0;
 
 SimplePacket_State::~SimplePacket_State() {
   // @@protoc_insertion_point(destructor:rednet.SimplePacket.State)
+  if (GetArenaForAllocation() != nullptr) return;
   SharedDtor();
   _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void SimplePacket_State::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
+inline void SimplePacket_State::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   changed_time_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
@@ -279,7 +283,6 @@ const char* SimplePacket_State::_InternalParse(const char* ptr, ::PROTOBUF_NAMES
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
     switch (tag >> 3) {
       // required .rednet.SimplePacket.State.StateType type = 1;
       case 1:
@@ -291,7 +294,8 @@ const char* SimplePacket_State::_InternalParse(const char* ptr, ::PROTOBUF_NAMES
           } else {
             ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
           }
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // required string changed_time = 2;
       case 2:
@@ -302,28 +306,30 @@ const char* SimplePacket_State::_InternalParse(const char* ptr, ::PROTOBUF_NAMES
           ::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "rednet.SimplePacket.State.changed_time");
           #endif  // !NDEBUG
           CHK_(ptr);
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   _has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
@@ -399,34 +405,25 @@ size_t SimplePacket_State::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_cached_size_);
 }
 
-void SimplePacket_State::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:rednet.SimplePacket.State)
-  GOOGLE_DCHECK_NE(&from, this);
-  const SimplePacket_State* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<SimplePacket_State>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:rednet.SimplePacket.State)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:rednet.SimplePacket.State)
-    MergeFrom(*source);
-  }
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData SimplePacket_State::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSizeCheck,
+    SimplePacket_State::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SimplePacket_State::GetClassData() const { return &_class_data_; }
+
+void SimplePacket_State::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to,
+                      const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+  static_cast<SimplePacket_State *>(to)->MergeFrom(
+      static_cast<const SimplePacket_State &>(from));
 }
+
 
 void SimplePacket_State::MergeFrom(const SimplePacket_State& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:rednet.SimplePacket.State)
   GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -440,13 +437,7 @@ void SimplePacket_State::MergeFrom(const SimplePacket_State& from) {
     }
     _has_bits_[0] |= cached_has_bits;
   }
-}
-
-void SimplePacket_State::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:rednet.SimplePacket.State)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void SimplePacket_State::CopyFrom(const SimplePacket_State& from) {
@@ -463,16 +454,23 @@ bool SimplePacket_State::IsInitialized() const {
 
 void SimplePacket_State::InternalSwap(SimplePacket_State* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  changed_time_.Swap(&other->changed_time_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &changed_time_, lhs_arena,
+      &other->changed_time_, rhs_arena
+  );
   swap(type_, other->type_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata SimplePacket_State::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(
+      &descriptor_table_simple_5fpacket_2eproto_getter, &descriptor_table_simple_5fpacket_2eproto_once,
+      file_level_metadata_simple_5fpacket_2eproto[0]);
 }
-
 
 // ===================================================================
 
@@ -504,10 +502,13 @@ const ::rednet::SimplePacket_State&
 SimplePacket::_Internal::state(const SimplePacket* msg) {
   return *msg->state_;
 }
-SimplePacket::SimplePacket(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
+SimplePacket::SimplePacket(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor();
-  RegisterArenaDtor(arena);
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
   // @@protoc_insertion_point(arena_constructor:rednet.SimplePacket)
 }
 SimplePacket::SimplePacket(const SimplePacket& from)
@@ -517,7 +518,7 @@ SimplePacket::SimplePacket(const SimplePacket& from)
   now_time_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (from._internal_has_now_time()) {
     now_time_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_now_time(), 
-      GetArena());
+      GetArenaForAllocation());
   }
   if (from._internal_has_state()) {
     state_ = new ::rednet::SimplePacket_State(*from.state_);
@@ -540,12 +541,13 @@ now_time_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlr
 
 SimplePacket::~SimplePacket() {
   // @@protoc_insertion_point(destructor:rednet.SimplePacket)
+  if (GetArenaForAllocation() != nullptr) return;
   SharedDtor();
   _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void SimplePacket::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
+inline void SimplePacket::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   now_time_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete state_;
 }
@@ -591,7 +593,6 @@ const char* SimplePacket::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
     switch (tag >> 3) {
       // required int32 id = 1;
       case 1:
@@ -599,7 +600,8 @@ const char* SimplePacket::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
           _Internal::set_has_id(&has_bits);
           id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // required string now_time = 2;
       case 2:
@@ -610,7 +612,8 @@ const char* SimplePacket::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
           ::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "rednet.SimplePacket.now_time");
           #endif  // !NDEBUG
           CHK_(ptr);
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // required .rednet.SimplePacket.ObjectType object_type = 3;
       case 3:
@@ -622,7 +625,8 @@ const char* SimplePacket::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
           } else {
             ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(3, val, mutable_unknown_fields());
           }
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // required .rednet.SimplePacket.UpdateType update_type = 4;
       case 4:
@@ -634,35 +638,38 @@ const char* SimplePacket::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
           } else {
             ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(4, val, mutable_unknown_fields());
           }
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // required .rednet.SimplePacket.State state = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_state(), ptr);
           CHK_(ptr);
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   _has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
@@ -739,9 +746,7 @@ size_t SimplePacket::RequiredFieldsByteSizeFallback() const {
 
   if (_internal_has_id()) {
     // required int32 id = 1;
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_id());
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_id());
   }
 
   if (_internal_has_object_type()) {
@@ -774,9 +779,7 @@ size_t SimplePacket::ByteSizeLong() const {
         *state_);
 
     // required int32 id = 1;
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_id());
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_id());
 
     // required .rednet.SimplePacket.ObjectType object_type = 3;
     total_size += 1 +
@@ -793,34 +796,25 @@ size_t SimplePacket::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_cached_size_);
 }
 
-void SimplePacket::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:rednet.SimplePacket)
-  GOOGLE_DCHECK_NE(&from, this);
-  const SimplePacket* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<SimplePacket>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:rednet.SimplePacket)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:rednet.SimplePacket)
-    MergeFrom(*source);
-  }
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData SimplePacket::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSizeCheck,
+    SimplePacket::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SimplePacket::GetClassData() const { return &_class_data_; }
+
+void SimplePacket::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to,
+                      const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+  static_cast<SimplePacket *>(to)->MergeFrom(
+      static_cast<const SimplePacket &>(from));
 }
+
 
 void SimplePacket::MergeFrom(const SimplePacket& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:rednet.SimplePacket)
   GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -843,13 +837,7 @@ void SimplePacket::MergeFrom(const SimplePacket& from) {
     }
     _has_bits_[0] |= cached_has_bits;
   }
-}
-
-void SimplePacket::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:rednet.SimplePacket)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void SimplePacket::CopyFrom(const SimplePacket& from) {
@@ -869,9 +857,15 @@ bool SimplePacket::IsInitialized() const {
 
 void SimplePacket::InternalSwap(SimplePacket* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  now_time_.Swap(&other->now_time_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &now_time_, lhs_arena,
+      &other->now_time_, rhs_arena
+  );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(SimplePacket, update_type_)
       + sizeof(SimplePacket::update_type_)
@@ -881,9 +875,10 @@ void SimplePacket::InternalSwap(SimplePacket* other) {
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata SimplePacket::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(
+      &descriptor_table_simple_5fpacket_2eproto_getter, &descriptor_table_simple_5fpacket_2eproto_once,
+      file_level_metadata_simple_5fpacket_2eproto[1]);
 }
-
 
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace rednet
