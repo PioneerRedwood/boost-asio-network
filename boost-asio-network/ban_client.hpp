@@ -36,7 +36,9 @@ public:
 	client() : ping_timer_(context_) {}
 	~client()
 	{
-		if (thr.joinable()) 
+		context_.stop();
+
+		if (thr.joinable())
 		{ 
 			thr.join();
 		}
@@ -62,19 +64,19 @@ public:
 		conn_->send(msg);
 	}
 
-	std::deque<std::string> get_recv_deque() { return recv_deque_; }
+	std::deque<std::string>& get_recv_deque() { return recv_deque_; }
 
 private:
 	void on_ping_to_server(const boost::system::error_code& error)
 	{
 		// conn_이 살아있는지 확인해야함
-		if (error)
+		if (error && context_.stopped())
 		{
 			return;
 		}
 		else
 		{
-			std::cout << "on_ping_to_server \n";
+			//std::cout << "on_ping_to_server \n";
 			conn_->send("ping");
 			ping_to_server();
 		}

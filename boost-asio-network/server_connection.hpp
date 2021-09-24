@@ -14,6 +14,7 @@
 
 #include "ban_server.hpp"
 
+class server;
 class connection
 	: public boost::enable_shared_from_this<connection>
 	, boost::noncopyable
@@ -22,7 +23,6 @@ public:
 	using ptr = boost::shared_ptr<connection>;
 	using err = boost::system::error_code;
 	using self_type = connection;
-
 private:
 	boost::asio::ip::tcp::socket socket_;
 
@@ -32,14 +32,12 @@ private:
 
 	bool started_ = false;
 	std::deque<std::string>& recv_deque_;
-
-	std::string STATIC_TEST_STRING = 
-		"THISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTTHISISMESSAGETOCLIENTHELLOWORLD\n"
-	;
-
 public:
 	connection(boost::asio::io_context& context, std::deque<std::string>& recv_deque)
-		: socket_(std::move(boost::asio::ip::tcp::socket(context))), recv_deque_(recv_deque) {}
+		: 
+		socket_(std::move(boost::asio::ip::tcp::socket(context))), 
+		recv_deque_(recv_deque)
+		{}
 
 	bool started() const { return started_; }
 
@@ -70,30 +68,21 @@ private:
 	{
 		//std::cout << "[SERVER] received msg " << msg;
 
-		if (msg.size() > 0)
+		//if (msg.size() > 0)
+		//{
+		//	recv_deque_.push_back(msg);
+		//}
+		
+		if (msg.find("ping") == 0)
 		{
-			recv_deque_.push_back(msg);
-		}
-
-		if (msg.find("login") == 0)
-		{
-			write(STATIC_TEST_STRING);
-		}
-		else if (msg.find("ping") == 0)
-		{
-			write(STATIC_TEST_STRING);
-		}
-		else if (msg.find("ask_clients") == 0)
-		{
-			// send to client connected clients info
-			write("clients [0]\n");
+			// 여기서 접속한 클라이언트 정보를 보내는건 어떠한가
+			write("ok\n");
 		}
 		else if (msg.find("KEY") == 0)
 		{
-			std::cout << msg << "\n";
 			std::string recv_msg(msg.substr(msg.find("KEY"), msg.size() - 1));
-
 			write(recv_msg + " ok\n");
+			recv_deque_.push_back(msg);
 		}
 	}
 

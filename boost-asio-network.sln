@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost-asio-network", "boost
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost-asio-network-client", "boost-asio-network-client\boost-asio-network-client.vcxproj", "{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "google-protobuf-test", "google-protobuf-test\google-protobuf-test.vcxproj", "{39149F80-CE2A-452C-B543-78E8A4AA01C0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,14 +31,6 @@ Global
 		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Release|x64.Build.0 = Release|x64
 		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Release|x86.ActiveCfg = Release|Win32
 		{BFD096AC-75FF-4B45-9BA2-AE93789B16BD}.Release|x86.Build.0 = Release|Win32
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Debug|x64.ActiveCfg = Debug|x64
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Debug|x64.Build.0 = Debug|x64
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Debug|x86.ActiveCfg = Debug|Win32
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Debug|x86.Build.0 = Debug|Win32
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Release|x64.ActiveCfg = Release|x64
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Release|x64.Build.0 = Release|x64
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Release|x86.ActiveCfg = Release|Win32
-		{39149F80-CE2A-452C-B543-78E8A4AA01C0}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

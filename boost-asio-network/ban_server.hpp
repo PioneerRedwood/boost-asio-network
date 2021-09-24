@@ -15,6 +15,7 @@
 
 #include "server_connection.hpp"
 
+class connection;
 class server
 {
 public:
@@ -24,10 +25,7 @@ public:
 private:
 	io_context& context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
-
-	//boost::shared_ptr<connection> conn_;
 	std::unordered_map<unsigned, conn_ptr> conn_map_;
-	//std::vector<boost::shared_ptr<connection>> conns_;
 
 	unsigned curr_id_ = 0;
 	unsigned max_id_ = UINT_MAX;
@@ -41,15 +39,16 @@ private:
 
 	std::deque<std::string> recv_deque_;
 
-	unsigned short update_rate = 10;
+	unsigned short update_rate_ = 0;
 public:
-	server(io_context& context, boost::asio::ip::port_type port)
+	server(io_context& context, boost::asio::ip::port_type port, unsigned short update_rate)
 		:
 		context_(context),
 		acceptor_(context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
 		check_timer_(context_),
 		alive_timer_(context_),
-		update_timer_(context_)
+		update_timer_(context_),
+		update_rate_(update_rate)
 	{}
 
 	~server()
@@ -57,7 +56,6 @@ public:
 		context_.stop();
 
 		if (thr.joinable()) { thr.join(); }
-		//conn_->stop();
 
 		std::cout << "[SERVER] exit\n";
 	}
@@ -67,8 +65,8 @@ public:
 		try
 		{
 			accept();
-			check();
-
+			// 체크 비동기 함수를 넣어두면 예상치 못하게 종료됨
+			//check();
 			
 			thr = std::thread([this]() {
 
@@ -95,36 +93,30 @@ public:
 
 public:
 	// not used
-	void send_clients()
+	std::string get_clients()
 	{
 		if (conn_map_.empty())
 		{
-			return;
+			return std::string("");
 		}
 		buffer_.clear();
 
 		buffer_.append("clients ");
-		//std::cout << "[SERVER] print clients { ";
 		for (const auto client : conn_map_)
 		{
-			//std::cout << "[" << client.first << "]";
 			buffer_.append("[" + std::to_string(client.first) + ']');
 		}
-
-		//std::cout << " }\n";
-		//conn_->send(buffer_);
-
-		std::cout << buffer_;
+		return buffer_;
 	}
 
 	void broadcast()
 	{
-
+		
 	}
 
 	void update()
 	{
-		update_timer_.expires_from_now(boost::asio::chrono::microseconds(update_rate));
+		update_timer_.expires_from_now(boost::asio::chrono::milliseconds(update_rate_));
 		update_timer_.async_wait(boost::bind(&server::on_update, this));
 	}
 
@@ -147,14 +139,17 @@ public:
 		}
 		else 
 		{
-			std::cout << "[SERVER] new connection ! ID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
+			std::cout << "[SERVER] new connection\nID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
+			conn_map_.insert(std::make_pair(curr_id_++, conn_));
 			conn_->start();
 
 			//if (on_connect(conn_) && ((curr_id_ + 1) < max_id_))
 			//{
-			//	std::cout << "[SERVER] new connection ! ID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
+			//	std::cout << "[SERVER] new connection\nID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
 			//	conn_map_.insert(std::make_pair(curr_id_++, conn_));
 			//	conn_->start();
+
+			//	//send_clients(conn_);
 			//}
 			//else
 			//{
@@ -166,19 +161,22 @@ public:
 
 	void on_check()
 	{
-		for (const auto iter : conn_map_)
+		if (!conn_map_.empty())
 		{
-			std::cout << "client #[" << iter.first << "] " << iter.second->socket().remote_endpoint() << "\n";
+			std::cout << "[SERVER] check ";
 		}
 
-		/*if ((conn_->socket().is_open()))
+		for (const auto iter : conn_map_)
 		{
-			std::cout << "[SERVER] connection is alive .. \n";
+			// 여기서 클라이언트와의 접속 상태를 체크
+			if (!iter.second->started())
+			{
+				conn_map_.erase(iter.first);
+				continue;
+			}
+			std::cout << "[#" << iter.first << " " << iter.second->socket().remote_endpoint() << "] ";
 		}
-		else
-		{
-			std::cout << "[SERVER] connection is dead or not connected it's Ok. \n";
-		}*/
+		std::cout << "\n";
 
 		check();
 	}
@@ -205,7 +203,7 @@ public:
 		if (!recv_deque_.empty())
 		{
 			std::string msg = recv_deque_.front();
-			std::cout << "[SERVER] update [" << recv_deque_.size() << "] " << msg;
+			std::cout << "[SERVER] on_update [" << recv_deque_.size() << "] " << msg;
 			recv_deque_.pop_front();
 		}
 		update();
@@ -214,18 +212,16 @@ protected:
 	virtual bool on_connect(boost::shared_ptr<connection> client)
 	{
 		// broadcast the message
-
-
 		return true;
 	}
 
 	virtual void on_disconnect(boost::shared_ptr<connection> client)
 	{
-
+		
 	}
 
 	virtual void on_message(boost::shared_ptr<connection>, const std::string& msg)
 	{
-
+		
 	}
 };

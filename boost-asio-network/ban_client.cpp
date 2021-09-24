@@ -37,7 +37,6 @@ int main()
 		if (key[0] && !old_key[0])
 		{
 			// send something 
-			// 클라이언트는 사실상 전송을 등록하는 거지 실제로 보내진 않음
 			c.Send("KEY #1 PRESSED");
 		}
 
@@ -50,12 +49,10 @@ int main()
 		{
 			if (!c.get_recv_deque().empty())
 			{
-				auto msg = c.get_recv_deque().front();
+				// 받은 메시지를 여기서 처리
+				//std::cout << c.get_recv_deque().front() << c.get_recv_deque().size() << "\n";
 
-				if (msg.size() > 0)
-				{
-					//std::cout << msg << " ";
-				}
+				std::cout << c.get_recv_deque().front();
 				c.get_recv_deque().pop_front();
 
 				// for now just logging
