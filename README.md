@@ -131,10 +131,10 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
 
 ### 2021-09-16 #5
 
-- [디버깅 관련 문서](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/Boost_Asio_Study/Boost.Asio Debugging Document.md)를 만들었다.
+- [디버깅 관련 문서](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/Boost_Asio_Study/Boost.AsioDebuggingDocument.md)를 만들었다.
 
 ### 2021-09-24 #6
 
-- 테스트 관련 문서를 만들었다.
+- [테스트 관련 문서](https://github.com/PioneerRedwood/boost-asio-network/blob/main/framework-test/boost-asio-network%20framework%20test.md)를 만들었다.
 - 서버/클라이언트 계속 진행 중, 조금 더 매끄러운 통신이 가능한 방법을 모색 중
   - 서버 측에서 접속한 클라이언트 정보를 전송하는 기능 추가 중
