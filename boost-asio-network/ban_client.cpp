@@ -32,12 +32,18 @@ int main()
 		if (GetForegroundWindow() == GetConsoleWindow())
 		{
 			key[0] = GetAsyncKeyState('1') & 0x8000;
+			key[1] = GetAsyncKeyState('2') & 0x8000;
 		}
 
 		if (key[0] && !old_key[0])
 		{
 			// send something 
 			c.Send("KEY #1 PRESSED");
+		}
+
+		if (key[1] && !old_key[1])
+		{
+			c.Send("REQUEST clients");
 		}
 
 		for (size_t i = 0; i < key.size(); ++i)
@@ -52,7 +58,11 @@ int main()
 				// 받은 메시지를 여기서 처리
 				//std::cout << c.get_recv_deque().front() << c.get_recv_deque().size() << "\n";
 
-				std::cout << c.get_recv_deque().front();
+				if (c.get_recv_deque().front().find("ok") == std::string::npos)
+				{
+					std::string temp = c.get_recv_deque().front();
+					std::cout << temp;
+				}
 				c.get_recv_deque().pop_front();
 
 				// for now just logging

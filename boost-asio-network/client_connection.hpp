@@ -35,7 +35,7 @@ private:
 
 	boost::asio::steady_timer delay_timer_;
 	unsigned short delay_ = 10;
-
+	unsigned id_ = 0;
 public:
 	connection(
 		boost::asio::io_context& context,
@@ -78,7 +78,7 @@ public:
 
 	void send(const std::string& msg)
 	{
-		write(msg + "\n");
+		write(std::to_string(id_) + " " + msg + "\n");
 	}
 
 private:
@@ -91,7 +91,7 @@ private:
 		}
 		else
 		{
-			write("ping\n");
+			write("login\n");
 		}
 	}
 
@@ -103,14 +103,28 @@ private:
 			recv_deque_.push_back(msg);
 		}
 		
-		if (msg.find("ping") == 0)
+		if (msg.find("ping") != std::string::npos)
 		{
-			write("ping\n");
+			write(std::to_string(id_) + " ping\n");
 		}
-		else if (msg.find("clients") == 0)
+		else if (msg.find("clients") != std::string::npos)
 		{
-			std::cout << "[CLIENT] clients list from server " << msg;
-			write("ping\n");
+			//std::cout << "[DEBUG] clients list from server " << msg;
+			write(std::to_string(id_) + " ping\n");
+		}
+		else if (msg.find("login") != std::string::npos)
+		{
+			std::istringstream iss(msg);
+			std::string answer;
+			iss >> answer >> answer >> answer;
+			id_ = std::stoi(answer);
+			//std::cout << "[DEBUG] client id: " << id_ << " socket.remote_endpoint(): " << socket_.remote_endpoint() << "\n";
+
+			write(std::to_string(id_) + " ping\n");
+		}
+		else if (msg.find("broadcast") != std::string::npos)
+		{
+			write(std::to_string(id_) + " ping\n");
 		}
 	}
 

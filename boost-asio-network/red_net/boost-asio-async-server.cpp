@@ -11,7 +11,7 @@
 		- 클라이언트 요청 후 응답 속도 측정
 	- 서버/클라이언트는 반드시 연결에 대한 별도의 래퍼 클래스가 있어야 한다
 */
-#if 0
+#if 1
 // standard c++
 #include <iostream>
 #include <vector>

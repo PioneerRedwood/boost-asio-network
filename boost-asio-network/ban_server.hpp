@@ -124,7 +124,7 @@ public:
 	void accept()
 	{
 		boost::shared_ptr<connection> conn_ = boost::make_shared<connection>(
-			context_, recv_deque_);
+			context_, recv_deque_, curr_id_, conn_map_);
 
 		acceptor_.async_accept(conn_->socket(),
 			boost::bind(&server::on_accept, this, conn_, boost::asio::placeholders::error));
@@ -139,9 +139,16 @@ public:
 		}
 		else 
 		{
-			std::cout << "[SERVER] new connection\nID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
+			std::cout << "[SERVER] new connection ["<< curr_id_ << " => " << conn_->socket().remote_endpoint()<< "]\n";
 			conn_map_.insert(std::make_pair(curr_id_++, conn_));
 			conn_->start();
+
+			std::cout << "[SERVER] connected clients ";
+			for (const auto iter : conn_map_)
+			{
+				std::cout << iter.first << " ";
+			}
+			std::cout << "\n";
 
 			//if (on_connect(conn_) && ((curr_id_ + 1) < max_id_))
 			//{

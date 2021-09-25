@@ -32,11 +32,16 @@ private:
 
 	bool started_ = false;
 	std::deque<std::string>& recv_deque_;
+	unsigned id_ = 0;
+	std::unordered_map<unsigned, boost::shared_ptr<connection>>& clients_;
 public:
-	connection(boost::asio::io_context& context, std::deque<std::string>& recv_deque)
+	connection(boost::asio::io_context& context, std::deque<std::string>& recv_deque, unsigned id,
+		std::unordered_map<unsigned, boost::shared_ptr<connection>>& conn_)
 		: 
 		socket_(std::move(boost::asio::ip::tcp::socket(context))), 
-		recv_deque_(recv_deque)
+		recv_deque_(recv_deque),
+		id_(id),
+		clients_(conn_)
 		{}
 
 	bool started() const { return started_; }
@@ -55,6 +60,7 @@ public:
 		started_ = false;
 		socket_.close();
 
+		clients_.erase(id_);
 		std::cout << "\n[SERVER] connection is stopped\n";
 	}
 
@@ -73,15 +79,39 @@ private:
 		//	recv_deque_.push_back(msg);
 		//}
 		
-		if (msg.find("ping") == 0)
+		if (msg.find("ping") != std::string::npos)
 		{
-			// 여기서 접속한 클라이언트 정보를 보내는건 어떠한가
+			//std::cout << msg;
 			write("ok\n");
 		}
-		else if (msg.find("KEY") == 0)
+		else if (msg.find("login") != std::string::npos)
 		{
-			std::string recv_msg(msg.substr(msg.find("KEY"), msg.size() - 1));
-			write(recv_msg + " ok\n");
+			std::stringstream ss;
+			ss << "login ok " << id_ << "\n";
+			//std::cout << ss.str();
+
+			write(ss.str());
+		}
+		else if (msg.find("KEY") != std::string::npos)
+		{
+			//std::string recv_msg(msg.substr(msg.find("KEY"), msg.size() - 1));
+			write("broadcast " + msg);
+			recv_deque_.push_back(msg);
+		}
+		else if (msg.find("REQUEST clients") != std::string::npos)
+		{
+			if (clients_.empty())
+			{
+				return;
+			}
+			std::string recv_msg;
+			recv_msg.append("clients [ ");
+			for (const auto client : clients_)
+			{
+				recv_msg.append(std::to_string(client.first) + " ");
+			}
+			recv_msg.append("]\n");
+			write(recv_msg);
 			recv_deque_.push_back(msg);
 		}
 	}

@@ -29,7 +29,7 @@ private:
 	std::deque<std::string> recv_deque_;
 
 	std::mutex mutex_;
-	unsigned ms_ = 2000;
+	unsigned ms_ = 100;
 
 	std::thread thr;
 public:
