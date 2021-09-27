@@ -14,6 +14,7 @@
 #include <boost/asio/placeholders.hpp>
 
 #include "server_connection.hpp"
+#include "ban_room.hpp"
 
 class connection;
 class server
@@ -38,6 +39,7 @@ private:
 	boost::asio::steady_timer update_timer_;
 
 	std::deque<std::string> recv_deque_;
+	std::unordered_map<unsigned, std::unique_ptr<session_room>> rooms_;
 
 	unsigned short update_rate_ = 0;
 public:
@@ -65,12 +67,9 @@ public:
 		try
 		{
 			accept();
-			// 체크 비동기 함수를 넣어두면 예상치 못하게 종료됨
-			//check();
 			
 			thr = std::thread([this]() {
 
-				//boost::asio::executor_work_guard<decltype(context_.get_executor())> work{ context_.get_executor() };
 				context_.run();
 				
 				});
@@ -92,23 +91,6 @@ public:
 	}
 
 public:
-	// not used
-	std::string get_clients()
-	{
-		if (conn_map_.empty())
-		{
-			return std::string("");
-		}
-		buffer_.clear();
-
-		buffer_.append("clients ");
-		for (const auto client : conn_map_)
-		{
-			buffer_.append("[" + std::to_string(client.first) + ']');
-		}
-		return buffer_;
-	}
-
 	void broadcast()
 	{
 		
@@ -124,7 +106,7 @@ public:
 	void accept()
 	{
 		boost::shared_ptr<connection> conn_ = boost::make_shared<connection>(
-			context_, recv_deque_, curr_id_, conn_map_);
+			context_, recv_deque_, curr_id_, conn_map_, rooms_);
 
 		acceptor_.async_accept(conn_->socket(),
 			boost::bind(&server::on_accept, this, conn_, boost::asio::placeholders::error));
@@ -149,61 +131,9 @@ public:
 				std::cout << iter.first << " ";
 			}
 			std::cout << "\n";
-
-			//if (on_connect(conn_) && ((curr_id_ + 1) < max_id_))
-			//{
-			//	std::cout << "[SERVER] new connection\nID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
-			//	conn_map_.insert(std::make_pair(curr_id_++, conn_));
-			//	conn_->start();
-
-			//	//send_clients(conn_);
-			//}
-			//else
-			//{
-			//	std::cout << "[SERVER] connection denied\n";
-			//}
 		}
 		accept();
 	}
-
-	void on_check()
-	{
-		if (!conn_map_.empty())
-		{
-			std::cout << "[SERVER] check ";
-		}
-
-		for (const auto iter : conn_map_)
-		{
-			// 여기서 클라이언트와의 접속 상태를 체크
-			if (!iter.second->started())
-			{
-				conn_map_.erase(iter.first);
-				continue;
-			}
-			std::cout << "[#" << iter.first << " " << iter.second->socket().remote_endpoint() << "] ";
-		}
-		std::cout << "\n";
-
-		check();
-	}
-
-	void check()
-	{
-		check_timer_.expires_from_now(boost::posix_time::millisec(2000));
-		check_timer_.async_wait(boost::bind(&server::on_check, this));
-	}
-
-	//void on_keep_alive()
-	//{
-	//	keep_alive();
-	//}
-
-	//void keep_alive()
-	//{
-	//	alive_timer_.expires_from_now(boost::posix_time::millisec(100));
-	//	alive_timer_.async_wait(boost::bind(&server::on_keep_alive, this));
-	//}
 
 	void on_update()
 	{
@@ -213,6 +143,15 @@ public:
 			std::cout << "[SERVER] on_update [" << recv_deque_.size() << "] " << msg;
 			recv_deque_.pop_front();
 		}
+
+		for(auto iter = rooms_.begin(); iter != rooms_.end(); iter++)
+		{
+			if (conn_map_.find(iter->second->get_owner()) != conn_map_.end())
+			{
+				rooms_.erase(iter->first);
+			}
+		}
+
 		update();
 	}
 protected:

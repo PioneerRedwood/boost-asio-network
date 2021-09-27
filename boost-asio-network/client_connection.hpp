@@ -45,7 +45,7 @@ public:
 
 	~connection()
 	{
-		shared_from_this().reset();
+		//shared_from_this().reset();
 	}
 
 	static ptr new_(boost::asio::ip::tcp::endpoint ep,
@@ -96,20 +96,14 @@ private:
 	}
 
 	void on_message(const std::string& msg)
-	{
-		if (msg.size() > 0)
-		{
-			//std::cout << "[CLIENT] received msg " << msg;
-			recv_deque_.push_back(msg);
-		}
-		
+	{		
 		if (msg.find("ping") != std::string::npos)
 		{
 			write(std::to_string(id_) + " ping\n");
 		}
 		else if (msg.find("clients") != std::string::npos)
 		{
-			//std::cout << "[DEBUG] clients list from server " << msg;
+			//recv_deque_.push_back(msg);
 			write(std::to_string(id_) + " ping\n");
 		}
 		else if (msg.find("login") != std::string::npos)
@@ -118,12 +112,21 @@ private:
 			std::string answer;
 			iss >> answer >> answer >> answer;
 			id_ = std::stoi(answer);
-			//std::cout << "[DEBUG] client id: " << id_ << " socket.remote_endpoint(): " << socket_.remote_endpoint() << "\n";
 
+			//recv_deque_.push_back(msg);
 			write(std::to_string(id_) + " ping\n");
 		}
 		else if (msg.find("broadcast") != std::string::npos)
 		{
+			recv_deque_.push_back(msg);
+			write(std::to_string(id_) + " ping\n");
+		}
+		else if (msg.find("request") != std::string::npos)
+		{
+			//std::istringstream iss(msg);
+			//std::string answer;
+			//iss >> answer >> answer >> answer;
+			recv_deque_.push_back(msg);
 			write(std::to_string(id_) + " ping\n");
 		}
 	}
@@ -174,12 +177,6 @@ private:
 		async_read(socket_, boost::asio::buffer(read_buffer_),
 			boost::bind(&connection::on_read_completion, shared_from_this(), _1, _2),
 			boost::bind(&connection::on_read, shared_from_this(), _1, _2));
-	}
-
-	void post_write(const std::string& msg)
-	{
-		delay_timer_.expires_from_now(boost::asio::chrono::milliseconds(delay_));
-		delay_timer_.async_wait(boost::bind(&connection::write, shared_from_this(), msg));
 	}
 
 	void on_write(const err& error, size_t bytes)

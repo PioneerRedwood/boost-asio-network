@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <string>
+#include <vector>
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -13,6 +14,7 @@
 #include <boost/asio/placeholders.hpp>
 
 #include "ban_server.hpp"
+#include "ban_room.hpp"
 
 class server;
 class connection
@@ -34,21 +36,23 @@ private:
 	std::deque<std::string>& recv_deque_;
 	unsigned id_ = 0;
 	std::unordered_map<unsigned, boost::shared_ptr<connection>>& clients_;
+	std::unordered_map<unsigned, std::unique_ptr<session_room>>& rooms_;
 public:
 	connection(boost::asio::io_context& context, std::deque<std::string>& recv_deque, unsigned id,
-		std::unordered_map<unsigned, boost::shared_ptr<connection>>& conn_)
+		std::unordered_map<unsigned, boost::shared_ptr<connection>>& client, 
+		std::unordered_map<unsigned, std::unique_ptr<session_room>>& rooms)
 		: 
 		socket_(std::move(boost::asio::ip::tcp::socket(context))), 
 		recv_deque_(recv_deque),
 		id_(id),
-		clients_(conn_)
+		clients_(client),
+		rooms_(rooms)
 		{}
 
 	bool started() const { return started_; }
 
 	boost::asio::ip::tcp::socket& socket() { return socket_; }
 
-	// server
 	void start()
 	{
 		started_ = true;
@@ -71,14 +75,7 @@ public:
 
 private:
 	void on_message(const std::string& msg)
-	{
-		//std::cout << "[SERVER] received msg " << msg;
-
-		//if (msg.size() > 0)
-		//{
-		//	recv_deque_.push_back(msg);
-		//}
-		
+	{		
 		if (msg.find("ping") != std::string::npos)
 		{
 			//std::cout << msg;
@@ -92,13 +89,13 @@ private:
 
 			write(ss.str());
 		}
-		else if (msg.find("KEY") != std::string::npos)
+		else if (msg.find("key") != std::string::npos)
 		{
 			//std::string recv_msg(msg.substr(msg.find("KEY"), msg.size() - 1));
 			write("broadcast " + msg);
 			recv_deque_.push_back(msg);
 		}
-		else if (msg.find("REQUEST clients") != std::string::npos)
+		else if (msg.find("ask clients") != std::string::npos)
 		{
 			if (clients_.empty())
 			{
@@ -110,9 +107,60 @@ private:
 			{
 				recv_msg.append(std::to_string(client.first) + " ");
 			}
-			recv_msg.append("]\n");
+			recv_msg.append("]");
 			write(recv_msg);
 			recv_deque_.push_back(msg);
+		}
+		else if (msg.find("making room") != std::string::npos)
+		{
+			std::istringstream iss(msg);
+			std::string temp;
+			iss >> temp >> temp >> temp >> temp;
+			bool success = false;
+			if (rooms_.find(id_) == rooms_.end())
+			{
+				try
+				{
+					// 세션 룸에 대한 맵을 생성하고 넣었는데 안됨
+					//std::unique_ptr<session_room> room_ptr = session_room::new_(id_, temp);
+					//rooms_.try_emplace(id_, std::make_unique<session_room>(id_, temp));
+					success = true;
+				}
+				catch (const std::exception& exp)
+				{
+					std::cerr << exp.what() << "\n";
+				}
+			}
+
+			if (success)
+			{
+				write("request ok");
+			}
+			else
+			{
+				write("request fail");
+			}
+			recv_deque_.push_back(msg);
+		}
+		else if (msg.find("searching room") != std::string::npos)
+		{
+			std::string temp;
+			temp.append("\n");
+			for (auto iter = rooms_.begin(); iter != rooms_.end(); iter++)
+			{
+				temp.append(iter->second->to_string());
+			}
+			temp = "request ok | searching room " + temp;
+			write(temp);
+			recv_deque_.push_back(msg);
+		}
+		else if (msg.find("join room") != std::string::npos)
+		{
+
+		}
+		else if (msg.find("exit room") != std::string::npos)
+		{
+
 		}
 	}
 
