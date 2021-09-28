@@ -31,16 +31,12 @@ private:
 	unsigned ms_ = 100;
 
 	std::thread thr;
+	std::thread thr2;
 public:
 	client() : ping_timer_(context_) {}
 	~client()
 	{
-		context_.stop();
-
-		if (thr.joinable())
-		{ 
-			thr.join();
-		}
+		stop();
 	}
 
 	bool connected() { return conn_->socket().is_open(); }
@@ -55,14 +51,30 @@ public:
 
 		update();
 
-		thr = std::thread([this]() { context_.run(); });
 
+		//thr2 = std::thread([this]() { loop(); });
 		loop();
+		thr = std::thread([this]() { context_.run(); });
 	}
 
-	void Send(const std::string& msg)
+	void send(const std::string& msg)
 	{
 		conn_->send(msg);
+	}
+
+	void stop()
+	{
+		context_.stop();
+
+		if (thr.joinable())
+		{
+			thr.join();
+		}
+
+		if (thr2.joinable())
+		{
+			thr2.join();
+		}
 	}
 
 	std::deque<std::string>& get_recv_deque() { return recv_deque_; }
@@ -105,15 +117,8 @@ private:
 			}
 			if (key[4] && !old_key[4])
 			{
-				std::cout << "Quit..\n";
-					
-				context_.stop();
-
-				if (thr.joinable())
-				{
-					thr.join();
-				}
-				bQuit = true;
+				conn_->send("disconnect");
+				stop();
 			}
 
 			for (size_t i = 0; i < key.size(); ++i)
@@ -133,8 +138,15 @@ private:
 
 					std::string temp = recv_deque_.front();
 					std::cout << "Remains: " << recv_deque_.size() << " contents: " << temp;
-
 					recv_deque_.pop_front();
+
+					if (temp.find("disconnect ok") != std::string::npos)
+					{
+						std::cout << "disconnected..\n";
+
+						stop();
+						bQuit = true;
+					}
 				}
 			}
 			else

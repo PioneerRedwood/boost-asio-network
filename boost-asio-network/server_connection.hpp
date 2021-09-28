@@ -65,7 +65,7 @@ public:
 		socket_.close();
 
 		clients_.erase(id_);
-		std::cout << "\n[SERVER] connection is stopped\n";
+		std::cout << "\n[SERVER] " << id_ << " disconnected\n";
 	}
 
 	void send(const std::string& msg)
@@ -76,18 +76,24 @@ public:
 private:
 	void on_message(const std::string& msg)
 	{		
+		std::cout << msg;
 		if (msg.find("ping") != std::string::npos)
 		{
 			//std::cout << msg;
-			write("ok\n");
+			write("ping ok");
 		}
 		else if (msg.find("login") != std::string::npos)
 		{
 			std::stringstream ss;
-			ss << "login ok " << id_ << "\n";
-			//std::cout << ss.str();
+			ss << "login ok " << id_;
+			std::cout << ss.str();
 
 			write(ss.str());
+		}
+		else if (msg.find("disconnect") != std::string::npos)
+		{
+			write("disconnect ok");
+			started_ = false;
 		}
 		else if (msg.find("key") != std::string::npos)
 		{
@@ -182,15 +188,15 @@ private:
 
 	void on_read(const err& error, size_t bytes)
 	{
+		if (!started_)
+		{
+			return;
+		}
+
 		if (error)
 		{
 			std::cout << "[ERROR] async_read\n" << error.message();
 			stop();
-		}
-
-		if (!started_)
-		{
-			return;
 		}
 
 		std::string msg(read_buffer_, bytes);

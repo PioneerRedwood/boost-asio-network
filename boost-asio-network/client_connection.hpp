@@ -64,7 +64,6 @@ public:
 	void start(boost::asio::ip::tcp::endpoint ep)
 	{
 		started_ = true;
-		// start connect
 		socket_.async_connect(ep, boost::bind(&connection::on_connect, shared_from_this(), _1));
 	}
 
@@ -78,6 +77,7 @@ public:
 
 	void send(const std::string& msg)
 	{
+		// 2021-09-28 서버와 연결이 안돼있는 상태에서도 비동기 전송 시 에러가 안남 -> 버그
 		write(std::to_string(id_) + " " + msg + "\n");
 	}
 
@@ -96,15 +96,17 @@ private:
 	}
 
 	void on_message(const std::string& msg)
-	{		
-		if (msg.find("ping") != std::string::npos)
+	{
+		std::cout << msg;
+
+		if (msg.find("ping ok") != std::string::npos)
 		{
-			write(std::to_string(id_) + " ping\n");
+			write("ping");
 		}
 		else if (msg.find("clients") != std::string::npos)
 		{
-			//recv_deque_.push_back(msg);
-			write(std::to_string(id_) + " ping\n");
+			recv_deque_.push_back(msg);
+			write("ping");
 		}
 		else if (msg.find("login") != std::string::npos)
 		{
@@ -113,21 +115,22 @@ private:
 			iss >> answer >> answer >> answer;
 			id_ = std::stoi(answer);
 
-			//recv_deque_.push_back(msg);
-			write(std::to_string(id_) + " ping\n");
+			recv_deque_.push_back(msg);
+			write("ping");
 		}
 		else if (msg.find("broadcast") != std::string::npos)
 		{
 			recv_deque_.push_back(msg);
-			write(std::to_string(id_) + " ping\n");
+			write("ping");
 		}
 		else if (msg.find("request") != std::string::npos)
 		{
 			//std::istringstream iss(msg);
 			//std::string answer;
 			//iss >> answer >> answer >> answer;
+
 			recv_deque_.push_back(msg);
-			write(std::to_string(id_) + " ping\n");
+			write("ping");
 		}
 	}
 
