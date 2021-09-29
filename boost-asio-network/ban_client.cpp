@@ -1,5 +1,3 @@
-#pragma once
-
 #include <iostream>
 #include <unordered_map>
 #include <string>
@@ -18,8 +16,81 @@
 
 int main()
 {
-	client c;
+	boost::asio::io_context context;
+	client c(context);
 	c.connect("127.0.0.1", 9000);
+
+	//c.loop();
+	bool bQuit = false;
+
+	std::vector<bool> key(5, false);
+	std::vector<bool> old_key(5, false);
+	try
+	{
+		while (!bQuit)
+		{
+			if (GetForegroundWindow() == GetConsoleWindow())
+			{
+				key[0] = GetAsyncKeyState('1') & 0x8000;
+				key[1] = GetAsyncKeyState('2') & 0x8000;
+				key[2] = GetAsyncKeyState('3') & 0x8000;
+				key[3] = GetAsyncKeyState('4') & 0x8000;
+				key[4] = GetAsyncKeyState('5') & 0x8000;
+			}
+
+			if (key[0] && !old_key[0])
+			{
+				c.send("key #1 pressed");
+			}
+			if (key[1] && !old_key[1])
+			{
+				c.send("ask clients");
+			}
+			if (key[2] && !old_key[2])
+			{
+				c.send("making room red");
+			}
+			if (key[3] && !old_key[3])
+			{
+				c.send("searching room");
+			}
+			if (key[4] && !old_key[4])
+			{
+				c.send("disconnect");
+				bQuit = true;
+			}
+
+			for (size_t i = 0; i < key.size(); ++i)
+			{
+				old_key[i] = key[i];
+			}
+
+			if (c.connected())
+			{
+				if (!c.get_recv_deque().empty())
+				{
+					std::string temp = c.get_recv_deque().front();
+					std::cout << "Remains: " << c.get_recv_deque().size() << " contents: " << temp;
+					c.get_recv_deque().pop_front();
+				}
+			}
+			else
+			{
+				std::cout << "disconnected\n";
+				bQuit = true;
+			}
+		}
+	}
+	catch (const std::exception& exception)
+	{
+		std::cerr << exception.what() << "\n";
+		c.stop();
+	}
+
+	if (c.connected())
+	{
+		c.stop();
+	}
 
 #if 0
 	//std::vector<bool> key(3, false);

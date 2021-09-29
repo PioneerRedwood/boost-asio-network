@@ -1,10 +1,9 @@
 ﻿# boost-asio-network
 
-boost::asio를 사용한 게임 네트워크 학습 겸 최종 프레임워크 제작이 목표 😎
+boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워크 제작이 목표 😎
 
 - server/client 양쪽 데이터 주고 받는 식의 프레임워크 설계/구현
-- boost::asio 및 Google protobuf 사용 예정
-
+- boost::asio 및 Google protobuf 사용 예정 --> 문제점 발생
 - boost 1.77.0 사용
 
 
@@ -149,4 +148,6 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
 
 - 클라이언트 세션 룸 프레임워크 제작 중
 - 클라이언트 측에서 making room, searching room, join room, exit room 등 기본 세션 룸 명령 호출하는 방식
+- 2021-09-29 추가
+  - [디버깅 문서](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/Boost_Asio_Study/Boost.AsioDebuggingDocument.md) 중 2021-09-29 문제점 #6 참고
 

@@ -4,17 +4,14 @@
 #if 1
 int main()
 {
-	// 클라이언트와 다르게 서버는 io_context가 필요하다?
 	boost::asio::io_context context;
-	server s(context, 9000, 2);
+	server s(context, 9000);
 
-	if (s.start())
+	if (s.start(5))
 	{
 		std::cout << "[SERVER] is running..\n";
+		context.run();
 	}
-	s.update();
-
-	context.run();
 
 	std::cout << "[SERVER] exit..\n";
 	return 0;

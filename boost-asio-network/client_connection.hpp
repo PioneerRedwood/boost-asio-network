@@ -32,20 +32,22 @@ private:
 
 	bool started_ = false;
 	std::deque<std::string>& recv_deque_;
+	unsigned id_ = -1;
 
-	boost::asio::steady_timer delay_timer_;
-	unsigned short delay_ = 10;
-	unsigned id_ = 0;
 public:
 	connection(
 		boost::asio::io_context& context,
 		std::deque<std::string>& deque
 	)
-		: socket_(context), recv_deque_(deque), delay_timer_(context) {}
+		: socket_(context), recv_deque_(deque) 
+	{
+		socket_.open(boost::asio::ip::tcp::v4());
+		socket_.set_option(boost::asio::socket_base::keep_alive(true));
+	}
 
 	~connection()
 	{
-		//shared_from_this().reset();
+
 	}
 
 	static ptr new_(boost::asio::ip::tcp::endpoint ep,
@@ -72,12 +74,11 @@ public:
 		started_ = false;
 		socket_.close();
 
-		std::cout << "[DEBUG] connection is stopped\n";
+		std::cout << "[CLIENT] connection is stopped\n";
 	}
 
 	void send(const std::string& msg)
 	{
-		// 2021-09-28 서버와 연결이 안돼있는 상태에서도 비동기 전송 시 에러가 안남 -> 버그
 		write(std::to_string(id_) + " " + msg + "\n");
 	}
 
@@ -97,16 +98,17 @@ private:
 
 	void on_message(const std::string& msg)
 	{
-		std::cout << msg;
-
+		//std::cout << msg;
 		if (msg.find("ping ok") != std::string::npos)
 		{
-			write("ping");
+			//std::cout << msg;
+			//recv_deque_.push_back(msg);
+			write("ping\n");
 		}
 		else if (msg.find("clients") != std::string::npos)
 		{
 			recv_deque_.push_back(msg);
-			write("ping");
+			//write("ping\n");
 		}
 		else if (msg.find("login") != std::string::npos)
 		{
@@ -116,21 +118,17 @@ private:
 			id_ = std::stoi(answer);
 
 			recv_deque_.push_back(msg);
-			write("ping");
+			//write("ping\n");
 		}
 		else if (msg.find("broadcast") != std::string::npos)
 		{
 			recv_deque_.push_back(msg);
-			write("ping");
+			//write("ping\n");
 		}
 		else if (msg.find("request") != std::string::npos)
 		{
-			//std::istringstream iss(msg);
-			//std::string answer;
-			//iss >> answer >> answer >> answer;
-
 			recv_deque_.push_back(msg);
-			write("ping");
+			//write("ping\n");
 		}
 	}
 
@@ -157,12 +155,6 @@ private:
 		{
 			return 0;
 		}
-
-		if (bytes > 0)
-		{
-			//std::cout << read_buffer_ << "\n";
-		}
-
 		bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
 		return found ? 0 : 1;
 	}
@@ -174,7 +166,6 @@ private:
 			std::cout << "[ERROR] socket_ is not open\n";
 			stop();
 		}
-
 
 		std::fill_n(read_buffer_, MAX_MSG, '\0');
 		async_read(socket_, boost::asio::buffer(read_buffer_),
@@ -191,7 +182,6 @@ private:
 		}
 		else
 		{
-			//std::cout << write_buffer_;
 			read();
 		}
 	}

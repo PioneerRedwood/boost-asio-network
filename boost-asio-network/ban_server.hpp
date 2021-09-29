@@ -17,6 +17,10 @@
 #include "ban_room.hpp"
 
 class connection;
+/*
+* 
+* 
+*/
 class server
 {
 public:
@@ -31,11 +35,7 @@ private:
 	unsigned curr_id_ = 0;
 	unsigned max_id_ = UINT_MAX;
 
-	std::string buffer_;
 	std::thread thr;
-
-	boost::asio::deadline_timer check_timer_;
-	boost::asio::deadline_timer alive_timer_;
 	boost::asio::steady_timer update_timer_;
 
 	std::deque<std::string> recv_deque_;
@@ -43,15 +43,14 @@ private:
 
 	unsigned short update_rate_ = 0;
 public:
-	server(io_context& context, boost::asio::ip::port_type port, unsigned short update_rate)
+	server(io_context& context, boost::asio::ip::port_type port)
 		:
 		context_(context),
-		acceptor_(context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-		check_timer_(context_),
-		alive_timer_(context_),
 		update_timer_(context_),
-		update_rate_(update_rate)
-	{}
+		acceptor_(context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
+	{
+		
+	}
 
 	~server()
 	{
@@ -62,17 +61,16 @@ public:
 		std::cout << "[SERVER] exit\n";
 	}
 
-	bool start()
+	bool start(unsigned short update_rate)
 	{
+		update_rate_ = update_rate;
+
 		try
 		{
 			accept();
-			
-			thr = std::thread([this]() {
+			update();
 
-				context_.run();
-				
-				});
+			//thr = std::thread([this]() { context_.run(); });
 		}
 		catch (const std::exception& exception)
 		{
@@ -90,29 +88,100 @@ public:
 		context_.stop();
 	}
 
-public:
 	void broadcast()
 	{
-		
+
 	}
 
+public:
 	void update()
 	{
 		update_timer_.expires_from_now(boost::asio::chrono::milliseconds(update_rate_));
 		update_timer_.async_wait(boost::bind(&server::on_update, this));
 	}
 
-public:
-	void accept()
+	void on_update()
 	{
-		boost::shared_ptr<connection> conn_ = boost::make_shared<connection>(
-			context_, recv_deque_, curr_id_, conn_map_, rooms_);
+		//std::cout << "[DEBUG] on_update .. \n";
+		if (!recv_deque_.empty())
+		{
+			std::string msg = recv_deque_.front();
+			std::cout << "[SERVER] on_update [" << recv_deque_.size() << "] " << msg;
+			//if (msg.find("on_connected") != std::string::npos)
+			//{
+			//	// 누가 메시지를 송신했는지 구분해야함
+			//}
 
-		acceptor_.async_accept(conn_->socket(),
-			boost::bind(&server::on_accept, this, conn_, boost::asio::placeholders::error));
+			recv_deque_.pop_front();
+		}
+		try
+		{
+			for (const auto iter : conn_map_)
+			{
+				if (!iter.second->started())
+				{
+					conn_map_.erase(iter.first);
+				}
+			}
+
+			// 세션 룸 맵의 상태를 업데이트마다 점검 -> 당장의 이는 현명한 설계가 아님을 알지만 어느 시점에선 반드시 필요한 부분이다
+			// 예상치 못하게 다른 세션 룸까지 날려버리는 상황이 발생함
+			for (auto iter = rooms_.begin(); iter != rooms_.end(); iter++)
+			{
+				if (conn_map_.find(iter->second->get_owner()) == conn_map_.end())
+				{
+					rooms_.erase(iter);
+					break;
+				}
+			}
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << e.what() << "\n";
+		}
+
+
+		update();
 	}
 
-	void on_accept(boost::shared_ptr<connection> conn_, const boost::system::error_code& error)
+	void accept()
+	{
+		//boost::shared_ptr<connection> conn_ = boost::make_shared<connection>(
+		//	context_, recv_deque_, curr_id_, conn_map_, rooms_);
+		// 
+		//acceptor_.async_accept(
+		//	boost::bind(&server::on_accept, this, boost::asio::placeholders::error, conn_));
+
+		acceptor_.async_accept(
+			[this](const boost::system::error_code& error, boost::asio::ip::tcp::socket socket)
+			{
+				if (!error)
+				{
+					std::cout << "new connection: " << socket.remote_endpoint() << "\n";
+					
+					boost::shared_ptr<connection> conn_ = boost::make_shared<connection>(
+						context_, recv_deque_, curr_id_, std::move(socket), conn_map_, rooms_);
+
+					conn_map_.insert(std::make_pair(curr_id_++, conn_));
+					conn_->start();
+					
+					std::cout << "[SERVER] connected clients ";
+					for (const auto iter : conn_map_)
+					{
+						std::cout << iter.first << " ";
+					}
+					std::cout << "\n";
+				}
+				else
+				{
+					std::cerr << "[SERVER] ERROR " << error.message() << "\n";
+					return;
+				}
+				accept();
+			});
+	}
+
+	void on_accept(const boost::system::error_code& error, boost::shared_ptr<connection> conn_)
 	{
 		if (error)
 		{
@@ -135,39 +204,21 @@ public:
 		accept();
 	}
 
-	void on_update()
-	{
-		if (!recv_deque_.empty())
-		{
-			std::string msg = recv_deque_.front();
-			std::cout << "[SERVER] on_update [" << recv_deque_.size() << "] " << msg;
-			recv_deque_.pop_front();
-		}
-
-		for(auto iter = rooms_.begin(); iter != rooms_.end(); iter++)
-		{
-			if (conn_map_.find(iter->second->get_owner()) != conn_map_.end())
-			{
-				rooms_.erase(iter->first);
-			}
-		}
-
-		update();
-	}
+	
 protected:
 	virtual bool on_connect(boost::shared_ptr<connection> client)
 	{
-		// broadcast the message
+		// broadcast about connection client
 		return true;
 	}
 
 	virtual void on_disconnect(boost::shared_ptr<connection> client)
 	{
-		
+		// broadcast about disconnection info
 	}
 
 	virtual void on_message(boost::shared_ptr<connection>, const std::string& msg)
 	{
-		
+		// broadcast the message
 	}
 };
