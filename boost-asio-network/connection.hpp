@@ -1,3 +1,5 @@
+#pragma once 
+
 #include <iostream>
 #include <unordered_map>
 #include <string>
@@ -11,51 +13,15 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio/placeholders.hpp>
 
-class node
-{
-protected:
-	boost::asio::io_context context_;
-	unsigned id_;
-
-protected:
-	void run()
-	{
-		context_.run();
-	}
-
-	void stop()
-	{
-		context_.stop();
-	}
-
-	node& self()
-	{
-		return *this;
-	}
-
-public:
-	unsigned get_id()
-	{
-		return id_;
-	}
-
-	void set_id(unsigned id)
-	{
-		id_ = id;
-	}
-};
-
+template<typename T>
 class connection
-	: public boost::enable_shared_from_this<connection>
+	: public boost::enable_shared_from_this<connection<T>>
 	, boost::noncopyable
 {
 public:
-	using ptr = boost::shared_ptr<connection>;
 	using err = boost::system::error_code;
 
-	enum class owner { server, client };
-
-private:
+protected:
 	boost::asio::ip::tcp::socket socket_;
 
 	enum { MAX_MSG = 1024 };
@@ -63,364 +29,126 @@ private:
 	char write_buffer_[MAX_MSG];
 
 	bool started_ = false;
-	owner own_;
+	std::deque<T>& recv_deque_;
 
-	node& node_;
 public:
-	connection(boost::asio::io_context& context, connection::owner own, node& node)
-		: socket_(context), own_(own), node_(node)
-	{
+	connection(boost::asio::ip::tcp::socket socket, std::deque<T>& recv_deque)
+		: socket_(std::move(socket)), recv_deque_(recv_deque)
+	{}
 
-	}
+	bool started() const { return started_; }
 
-	bool started() const
-	{
-		return started_;
-	}
-
-	boost::asio::ip::tcp::socket& socket()
-	{
-		return socket_;
-	}
-
-	void start(boost::asio::ip::tcp::endpoint ep)
-	{
-		started_ = true;
-
-		// client
-		if (own_ == owner::client)
-		{
-			// start connect
-			socket_.async_connect(ep,
-				// handler
-				[this](const err& error) -> void {
-					if (error)
-					{
-						stop();
-					}
-					else
-					{
-						write("hi server\n");
-					}
-				});
-		}
-
-		// server
-		if (own_ == owner::server)
-		{
-			read();
-		}
-	}
+	boost::asio::ip::tcp::socket& socket() { return socket_; }
 
 	void stop()
 	{
 		started_ = false;
 		socket_.close();
-
-		std::cout << "connection is stopped\n";
 	}
 
 	void send(const std::string& msg)
 	{
 		write(msg + "\n");
 	}
-private:
-	void on_message(const std::string& msg)
+
+	std::deque<T> get_recv_deque()
 	{
-		// client
-		if (own_ == owner::client)
+		return recv_deque_;
+	}
+
+protected:
+	virtual void on_message(const std::string& msg) {}
+
+	size_t on_read_completion(const err& error, size_t bytes)
+	{
+		if (error) { return 0; }
+
+		bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
+		return found ? 0 : 1;
+	}
+
+	void on_read(const err& error, size_t bytes)
+	{
+		if (!started_) { return; }
+
+		if (error)
 		{
-			std::cout << "[CLIENT] received msg " << msg;
-			if (msg.find("hi ") == 0)
-			{
-				std::istringstream in(msg);
-				std::string a1, a2;
-				in >> a1 >> a2;
-				if (a1 == "id")
-				{
-					node_.set_id(std::stoi(a2));
-				}
-				write("ask_clients\n");
-			}
-			else if (msg.find("ping ") == 0)
-			{
-				std::istringstream in(msg);
-				std::string answer;
-				in >> answer >> answer;
-				if (answer == "client_list_changed")
-				{
-					write("ask_clients\n");
-				}
-				else
-				{
-					write("ping\n");
-				}
-			}
-			else if (msg.find("clients ") == 0)
-			{
-				std::string clients = msg.substr(8);
-				write("ping\n");
-			}
+			std::cout << "[ERROR] async_read " << error.message();
+			stop();
 		}
 
-		if (own_ == owner::server)
-		{
-			std::cout << "[SERVER] received msg " << msg;
-			if (msg.find("login") == 0)
-			{
-				write("login ok\n");
-			}
-			else if (msg.find("ping ") == 0)
-			{
-				write("ping ok\n");
-			}
-			else if (msg.find("clients ") == 0)
-			{
-				// send to client connected clients info
-
-			}
-		}
+		std::string msg(read_buffer_, bytes);
+		on_message(msg);
 	}
 
 	void read()
 	{
+		if (!socket_.is_open())
+		{
+			std::cout << "[ERROR] socket_ is not open\n";
+			return;
+		}
+
+		std::fill_n(read_buffer_, MAX_MSG, '\0');
+
+		// 해당 부분은 람다가 정상적으로 작동하지 않는다
+		// weak_ptr의 카운트 수가 증가하는 알 수 없는 예외(?)를 해결해야한다
+#if 1
 		async_read(socket_, boost::asio::buffer(read_buffer_),
-			// completion condition
-			// 반드시 lambda [this](const err& error, size_t bytes) -> bool (return type); 명시할 것
-			[this](const err& error, size_t bytes) -> bool {
-				if (error)
-				{
-					return 0;
-				}
+			boost::bind(&connection::on_read_completion, this->shared_from_this(), _1, _2),
+			boost::bind(&connection::on_read, this->shared_from_this(), _1, _2));
+#else
+		async_read(socket_, boost::asio::buffer(read_buffer_),
+			[this](const err& error, size_t bytes)->size_t
+			{
+				if (error) { return 0; }
 
 				bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
 				return found ? 0 : 1;
 			},
-			// handler
-				[this](const err& error, size_t bytes) -> void {
+			[this](const err& error, size_t bytes)->void
+			{
+				if (!started_) { return; }
+
 				if (error)
 				{
-					std::cout << "[ERROR] async_read\n";
+					std::cout << "[ERROR] async_read\n" << error.message();
 					stop();
-				}
-				if (!started_)
-				{
-					return;
 				}
 
 				std::string msg(read_buffer_, bytes);
-
 				on_message(msg);
 			});
+#endif
+
+	}
+
+	void on_write(const err& error, size_t bytes)
+	{
+		if (error)
+		{
+			std::cout << "[ERROR] async_write\n";
+			return;
+		}
+		else
+		{
+			//std::cout << write_buffer_;
+			read();
+		}
 	}
 
 	void write(const std::string& msg)
 	{
 		if (!started_)
 		{
+			std::cout << "[DEBUG] write() but not started\n";
 			return;
 		}
 
+		std::fill_n(write_buffer_, MAX_MSG, '\0');
 		std::copy(msg.begin(), msg.end(), write_buffer_);
+
 		socket_.async_write_some(boost::asio::buffer(write_buffer_, msg.size()),
-			// handler
-			[this](const err& error, size_t bytes) -> void {
-				read();
-			});
-	}
-
-	void set_send_msg(const std::string& msg)
-	{
-		// store msg into thread-safe data structure
-		std::copy(msg.begin(), msg.end(), write_buffer_);
-	}
-};
-
-class client : public node
-{
-private:
-	boost::shared_ptr<connection> conn_;
-	boost::asio::deadline_timer ping_timer_;
-
-	// thread-safe data structure?
-	std::deque<std::string> deque_;
-	std::string buffer_;
-
-	std::mutex mutex_;
-public:
-	client(boost::asio::ip::port_type port)
-		: ping_timer_(node::context_)
-	{
-		conn_ =
-			boost::make_shared<connection>(context_, connection::owner::client, node::self());
-
-		conn_->start(boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), port));
-
-		ping_to_server();
-		node::run();
-	}
-
-#pragma region MUTEX NEEDED POINT?
-	void send(const std::string& msg)
-	{
-		// 해당 블록을 벗어나면 msg 가 사라짐
-		buffer_ = std::string(msg);
-		deque_.push_back(buffer_);
-		//conn_->send(buffer_);
-	}
-	
-	void on_ping_to_server()
-	{
-		buffer_.clear();
-		if (deque_.empty())
-		{
-			buffer_ = std::string("ping\n");
-		}
-		else
-		{
-			buffer_ = deque_.back();
-			deque_.pop_back();
-
-			conn_->send(buffer_);
-		}
-		ping_to_server();
-	}
-
-	void ping_to_server()
-	{
-		ping_timer_.expires_from_now(boost::posix_time::millisec(2000));
-		ping_timer_.async_wait(boost::bind(&client::on_ping_to_server, this));
-	}
-#pragma endregion
-
-};
-
-class server : public node
-{
-public:
-	using conn_ptr = boost::shared_ptr<connection>;
-private:
-	//?
-	boost::asio::ip::tcp::acceptor acceptor_;
-	conn_ptr conn_;
-	std::unordered_map<unsigned, conn_ptr> conn_map_;
-
-	unsigned curr_id_;
-	unsigned max_id_ = UINT_MAX;
-	
-	std::string buffer_;
-public:
-	server(boost::asio::ip::port_type port)
-		: acceptor_(node::context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
-	{
-
-	}
-
-	virtual ~server()
-	{
-		stop();
-	}
-
-	bool start()
-	{
-		try
-		{
-			accept();
-
-			node::run();
-		}
-		catch (const std::exception& exception)
-		{
-			std::cerr << exception.what() << "\n";
-			return false;
-		}
-
-		std::cout << "[SERVER] started\n";
-		return true;
-	}
-
-	void stop()
-	{
-		node::context_.stop();
-
-		std::cout << "[SERVER] stopped\n";
-	}
-
-public:
-	// 일단 클라이언트 목록 전송
-	void send()
-	{
-		if (conn_map_.empty())
-		{
-			return;
-		}
-		buffer_.clear();
-
-		std::cout << "[SERVER] print clients { ";
-		for (const auto client : conn_map_)
-		{
-			std::cout << "[" << client.first << "]";
-			buffer_.append("[" + client.first + ']');
-		}
-		std::cout << " }\n";
-
-		conn_->send(buffer_ + "\n");
-	}
-
-	void broadcast()
-	{
-
-	}
-
-	void update()
-	{
-
-	}
-
-private:
-	void accept()
-	{
-		conn_ =	boost::make_shared<connection>(node::context_, connection::owner::server, node::self());
-
-		acceptor_.async_accept(conn_->socket(),
-			boost::bind(&server::on_accept, this, boost::asio::placeholders::error));
-	}
-
-	void on_accept(const boost::system::error_code& error)
-	{
-		if (error)
-		{
-			std::cerr << "[SERVER] ERROR " << error.message() << "\n";
-			return;
-		}
-		else
-		{			
-			if (on_connect(conn_) && ((curr_id_ + 1) < max_id_))
-			{
-				std::cout << "[SERVER] new connection ! ID: [" << curr_id_ << "]: " << conn_->socket().remote_endpoint() << "\n";
-				conn_map_.insert(std::make_pair(curr_id_++, conn_));
-			}
-			else
-			{
-				std::cout << "[SERVER] connection denied\n";
-			}
-		}
-		accept();
-	}
-
-protected:
-	virtual bool on_connect(conn_ptr client)
-	{
-		return true;
-	}
-
-	virtual void on_disconnect(conn_ptr client)
-	{
-
-	}
-
-	virtual void on_message(conn_ptr, const std::string& msg)
-	{
-
+			boost::bind(&connection::on_write, this->shared_from_this(), _1, _2));
 	}
 };

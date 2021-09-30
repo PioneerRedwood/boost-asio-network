@@ -16,11 +16,6 @@
 #include "server_connection.hpp"
 #include "ban_room.hpp"
 
-class connection;
-/*
-* 
-* 
-*/
 class server
 {
 public:
@@ -46,11 +41,9 @@ public:
 	server(io_context& context, boost::asio::ip::port_type port)
 		:
 		context_(context),
-		update_timer_(context_),
-		acceptor_(context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
-	{
-		
-	}
+		update_timer_(context),
+		acceptor_(context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
+	{}
 
 	~server()
 	{

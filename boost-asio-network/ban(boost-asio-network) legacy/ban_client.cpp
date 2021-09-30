@@ -1,17 +1,3 @@
-#include <iostream>
-#include <unordered_map>
-#include <string>
-#include <vector>
-
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/thread.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/asio/placeholders.hpp>
-
 #include "ban_client.hpp"
 
 int main()

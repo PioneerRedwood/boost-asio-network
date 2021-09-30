@@ -19,12 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ban_server.cpp" />
+    <ClInclude Include="ban_room.hpp" />
+    <ClInclude Include="ban_packet.hpp" />
+    <ClInclude Include="connection.hpp" />
+    <ClInclude Include="new_ban_server.hpp" />
+    <ClInclude Include="server_conn.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ban_room.hpp" />
-    <ClInclude Include="ban_server.hpp" />
-    <ClInclude Include="server_connection.hpp" />
+    <ClCompile Include="new_ban_server.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

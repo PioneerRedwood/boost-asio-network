@@ -24,7 +24,6 @@ class connection
 public:
 	using ptr = boost::shared_ptr<connection>;
 	using err = boost::system::error_code;
-	using self_type = connection;
 
 private:
 	boost::asio::ip::tcp::socket socket_;
@@ -41,14 +40,12 @@ private:
 
 public:
 	connection(boost::asio::io_context& context, std::deque<std::string>& recv_deque, unsigned id,
-		boost::asio::ip::tcp::socket socket,
 		std::unordered_map<unsigned, boost::shared_ptr<connection>>& client, 
 		std::unordered_map<unsigned, std::unique_ptr<session_room>>& rooms)
-		: 
-		//socket_(std::move(boost::asio::ip::tcp::socket(context))), 
+		:
 		recv_deque_(recv_deque),
 		id_(id),
-		socket_(std::move(socket)),
+		socket_(context),
 		clients_(client),
 		rooms_(rooms)
 		{}

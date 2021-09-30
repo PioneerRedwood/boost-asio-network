@@ -21,7 +21,6 @@ class connection
 public:
 	using ptr = boost::shared_ptr<connection>;
 	using err = boost::system::error_code;
-	using self_type = connection;
 
 private:
 	boost::asio::ip::tcp::socket socket_;
@@ -36,10 +35,9 @@ private:
 
 public:
 	connection(
-		boost::asio::io_context& context,
-		std::deque<std::string>& deque
+		boost::asio::io_context& context, std::deque<std::string>& deque
 	)
-		: socket_(context), recv_deque_(deque) 
+		: socket_(context), recv_deque_(deque)
 	{
 		socket_.open(boost::asio::ip::tcp::v4());
 		socket_.set_option(boost::asio::socket_base::keep_alive(true));
@@ -87,13 +85,9 @@ private:
 	void on_connect(const err& err)
 	{
 		if (err)
-		{
 			stop();
-		}
 		else
-		{
 			write("login\n");
-		}
 	}
 
 	void on_message(const std::string& msg)
