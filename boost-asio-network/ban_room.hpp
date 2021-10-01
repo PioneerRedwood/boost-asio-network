@@ -3,8 +3,6 @@
 #include <set>
 #include <string>
 
-#include "server_connection.hpp"
-
 class session_room
 {
 public:
@@ -43,15 +41,14 @@ public:
 
 	std::string to_string() const
 	{
-		std::stringstream ss;
-		ss << owner_ << " " << title_ << "[ ";
+		std::string result(std::to_string(owner_) + " " + title_ + "[ ");
 		for (const unsigned id : users_)
 		{
-			ss << std::to_string(id) << " ";
+			result.append(std::to_string(id) + " ");
 		}
-		ss << "]";
-
-		return ss.str();
+		result.append("]");
+		
+		return result;
 	}
 
 	unsigned get_owner() const

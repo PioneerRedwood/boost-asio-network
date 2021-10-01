@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="tsdeque.hpp" />
     <ClInclude Include="ban_room.hpp" />
     <ClInclude Include="ban_packet.hpp" />
     <ClInclude Include="connection.hpp" />

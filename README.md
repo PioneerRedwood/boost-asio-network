@@ -150,4 +150,27 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
 - 클라이언트 측에서 making room, searching room, join room, exit room 등 기본 세션 룸 명령 호출하는 방식
 - 2021-09-29 추가
   - [디버깅 문서](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/Boost_Asio_Study/Boost.AsioDebuggingDocument.md) 중 2021-09-29 문제점 #6 참고
+  
+  
+
+## End of works?
+
+한달 남짓한 시간동안 boost-asio 라이브러리를 통해 TCP 서버와 클라이언트 동작을 직접 구현하기도 해보면서 학습을 진행했다. 구현하고 싶었던 기능들을 구현하고 도중에 예상치 못한 버그들을 볼 때마다 ~~화내면서~~ 디버깅을 해나갔다. google-protobuf와 같이 며칠간 붙잡고도 해결하지 못했던 기능도 있다. 
+
+효율적이고 직관적으로 코딩하고 네트워크 로직 설계를 고민하는게 즐거웠다. 전에 했던 [이모부의 과제]()가 몇년에 걸쳐 이렇게 다른 방식으로 흐를 것이라곤 상상도 못했다. 그때와 다르게 지금은 과제를 넘어서 구조 설계의 재미와 디버깅 과정 중 학습의 기쁨으로 하고 있다.
+
+학습만이 아니라 프레임워크를 제작이 최종 목표였으나 문득 어떤 것을 구현하고 있었는지 구체적인 목표가 없음을 깨달았다. 갈망하던 그 목표는 곧 개발의 방향과 사용할 네트워크 아키텍처였다. 이제는 단순히 서버와 클라이언트끼리 핑만 보내는 추상적인 것이 아니라 로그인, 매치메이킹, 전투 시뮬레이션, 경매장 시스템, 랭킹 시스템 등의 실용적이며 차원 높은 기술을 사용하며 구현하고 싶어졌다.
+
+많은 시간과 노력이 요구되는걸 알면서 동시에 설렌다. 
+
+
+
+## Packet serialize/deserialize
+
+### #1 tsdeque
+
+- designed by OneLoneCoder javidx9's tsdeque(thread-safe deque)
+- template class for message
+
+### #2 ban_packet
 

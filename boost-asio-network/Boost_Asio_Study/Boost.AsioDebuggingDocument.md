@@ -163,8 +163,6 @@ void read()
 
 - ~~설계상 클라이언트는 키보드 입력에 따라 서버에 전송하는 메시지가 다르다. 서버에서 수신은 빠른데 다시 돌아오는 응답에는 딜레이가 있다.~~
 
-
-
 #### ~~문제점 #3~~
 
 - ~~클라이언트 연결이 5-6개 됐을 때 알 수 없는 오류로 인해 종료될 수 있다.~~
@@ -216,3 +214,60 @@ connection -상속-> server_connection/client_connection 구조 리팩토링
 #### 문제점 #1
 
 - connection read/write 부분이 람다를 사용하면 정상적으로 작동하지 않는다. 상세한 에러는 다시 다룰 예정
+
+```c++
+// std <memory>
+...
+void _Incwref() noexcept { // increment weak reference count
+        _MT_INCR(_Weaks);
+    }
+...
+```
+
+
+
+## 2021-10-01 #4
+
+##### 2021-09-30 #3-1 문제점 디버깅 
+
+확실하지 않으나 여러가지 문서를 참고하고 디버깅한 결과 .. 이견이 생길 경우 추가할 예정
+
+```C++
+async_read(socket_, boost::asio::buffer(read_buffer_),        
+    // connection 인스턴스의 내용만 참고하면 되기 때문에 shared_ptr는 필요 없음
+    // 의문점. 최적화면에서 connection 인스턴스의 복사는 비효율적이다. 
+    // 만약 참조로 shared_ptr된 걸 넘기면 보다 효율적일까?
+	[this](const err& error, size_t bytes)->size_t
+	{
+		if (error) { return 0; }
+		bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
+		return found ? 0 : 1;
+	},
+    // lambda capture에 식을 추가해서 shared_ptr 전달
+	[this, self = std::move(this->shared_from_this())](const err& error, size_t bytes)->void
+	{
+		if (!started_) { return; }
+		if (error)
+		{
+			std::cout << "[ERROR] async_read\n" << error.message() << "\n";
+			return;
+		}
+		std::string msg(read_buffer_, bytes);
+        // shared 인스턴스가 필요한 부분
+		self->on_message(msg);
+	});
+```
+
+만약 this를 인자로 넘기면 connection을 복사 생성을 하게 되고 shared_ptr의 강한 참조 횟수(strong reference count)를 증가시키지 않고 약한 참조 횟수(weak reference count)를 증가시킨다. shared 인스턴스가 필요한 부분인 self->on_message(msg)에서는 복사 생성한 인스턴스가 아니라 실제 인스턴스를 참조해야 한다. 
+
+추신
+
+- 위 설명이 매끄럽지 않은데 정확한 이유를 모르겠다. 그저 에러가 발생한 부분으로부터의 추측일 뿐이다.
+
+- 짧은 영어로 stackoverflow에 [문의](https://stackoverflow.com/questions/69400540/c-boost-asio-network-in-async-callback-which-one-is-better-using-lambda-or/69400604#69400604)를 올리고 스스로 답했다. 🤦‍♂️
+
+
+
+#### 문제점 #1
+
+- 클라이언트에서 접속한 뒤 통신 중 갑작스럽게 접속이 종료된다.

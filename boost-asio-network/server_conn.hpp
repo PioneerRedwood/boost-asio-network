@@ -8,7 +8,7 @@ private:
 	unsigned id_ = 0;
 
 public:
-	server_conn(boost::asio::ip::tcp::socket socket, std::deque<T>& recv_deque, unsigned id
+	server_conn(boost::asio::ip::tcp::socket socket, tsdeque<T>& recv_deque, unsigned id
 		//std::unordered_map<unsigned, boost::shared_ptr<server_conn>>& clients
 		)
 		: connection<T>(std::move(socket), recv_deque), id_(id)

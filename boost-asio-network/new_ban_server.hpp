@@ -101,7 +101,7 @@ private:
 	boost::asio::ip::tcp::acceptor acceptor_;
 
 	boost::asio::steady_timer update_timer_;
-	std::deque<std::string> recv_deque_;
+	tsdeque<std::string> recv_deque_;
 	unsigned short update_rate_ = 0;
 
 	//std::thread thr;
