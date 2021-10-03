@@ -6,7 +6,9 @@ using System.Text;
 
 public class NetworkManager : MonoBehaviour
 {
-    TcpClient client = new TcpClient("127.0.0.1", 9000);
+    public bool active = false;
+
+    TcpClient client;
     byte[] buffer = new byte[1024];
     //StringBuilder sb = new StringBuilder();
 
@@ -14,7 +16,10 @@ public class NetworkManager : MonoBehaviour
     {
         try
         {
-            client.Close();
+            if(client.Connected)
+            {
+                client.Close();
+            }
         }
         catch (Exception e)
         {
@@ -26,16 +31,19 @@ public class NetworkManager : MonoBehaviour
     {
         try
         {
-            //public IAsyncResult BeginConnect(string host, int port, AsyncCallback requestCallback, object state);
-            client.BeginConnect("127.0.0.1", 9000, new AsyncCallback(OnConnectedToServer), client);
-            Read();
+            if(active)
+            {
+                client = new TcpClient("127.0.0.1", 9000);
+                //public IAsyncResult BeginConnect(string host, int port, AsyncCallback requestCallback, object state);
+                client.BeginConnect("127.0.0.1", 9000, new AsyncCallback(OnConnectedToServer), client);
+                Read();
+                InvokeRepeating("WriteSomething", 0.0f, 0.5f);
+            }
         }
         catch (Exception e)
         {
             Debug.Log(e.ToString());
         }
-
-        InvokeRepeating("WriteSomething", 0.0f, 0.5f);
     }
 
     private void OnConnectedToServer(IAsyncResult ar)
@@ -56,7 +64,7 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    void Read()
+    public void Read()
     {
         // 클라이언트의 네트워크 스트림으로 비동기 읽기 시작
         NetworkStream networkStream = client.GetStream();
@@ -79,10 +87,9 @@ public class NetworkManager : MonoBehaviour
         {
             Debug.Log(e.ToString());
         }
-
     }
 
-    void Write(String data)
+    public void Write(string data)
     {
         // 클라이언트의 네트워크 스트림으로 비동기 쓰기 시작
         buffer = Encoding.ASCII.GetBytes(data);
