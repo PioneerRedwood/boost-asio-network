@@ -85,7 +85,7 @@ protected:
 				bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
 				return found ? 0 : 1;
 			},
-			[this, self = std::move(this->shared_from_this())](const err& error, size_t bytes)->void
+			[this, self = this->shared_from_this()](const err& error, size_t bytes)->void
 			{
 				if (!started_) { return; }
 
@@ -112,7 +112,7 @@ protected:
 		std::copy(msg.begin(), msg.end(), write_buffer_);
 
 		socket_.async_write_some(boost::asio::buffer(write_buffer_, msg.size()),
-			[self = std::move(this->shared_from_this())](const err& error, size_t bytes)->void
+			[self = this->shared_from_this()](const err& error, size_t bytes)->void
 		{
 			if (error)
 			{

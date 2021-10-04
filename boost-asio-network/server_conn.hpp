@@ -36,7 +36,9 @@ private:
 			std::stringstream ss;
 			ss << "login ok " << id_++ << "\n";
 
-			connection<T>::recv_deque_.push_back(std::to_string(id_) + " on_connected\n");
+			//connection<T>::recv_deque_.push_back(std::to_string(id_) + " on_connected\n");
+			// TODO: Update login record on DB
+			// TODO: redis?
 			connection<T>::write(ss.str());
 		}
 		else if (msg.find("key") != std::string::npos)

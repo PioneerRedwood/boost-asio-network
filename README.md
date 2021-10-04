@@ -1,4 +1,4 @@
-﻿# boost-asio-network
+# boost-asio-network
 
 boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워크 제작이 목표 😎
 
@@ -165,12 +165,22 @@ boost include한 상태로 프로젝트를 빌드하는데 동적파일을 링�
 
 
 
-## Packet serialize/deserialize
+## ~~Packet serialize/deserialize~~
 
-### #1 tsdeque
+### ~~#1 tsdeque~~
 
-- designed by OneLoneCoder javidx9's tsdeque(thread-safe deque)
-- template class for message
+- ~~designed by OneLoneCoder javidx9's tsdeque(thread-safe deque)~~
+- ~~template class for message~~
 
-### #2 ban_packet
+### ~~#2 ban_packet~~
+
+
+
+## Connection into Unity client
+
+- Unity client simple login/lobby module
+  - Simple login transaction(Handling encoded/decoded data)
+  - Lobby(Matchmaking, Room system)
+- boost-asio login/lobby server
+  - MySQL, Redis
 

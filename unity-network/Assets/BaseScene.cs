@@ -20,11 +20,6 @@ public abstract class BaseScene : MonoBehaviour
 
     void Awake()
     {
-        // init
-        //Object eventSystem = GameObject.FindObjectOfType(typeof(EventSystem));
-        //if(eventSystem == null)
-        //{
-        //}
 
     }
 }
