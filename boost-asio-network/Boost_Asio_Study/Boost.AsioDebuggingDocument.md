@@ -266,7 +266,15 @@ async_read(socket_, boost::asio::buffer(read_buffer_),
 
 - 짧은 영어로 stackoverflow에 [문의](https://stackoverflow.com/questions/69400540/c-boost-asio-network-in-async-callback-which-one-is-better-using-lambda-or/69400604#69400604)를 올리고 스스로 답했다. 🤦‍♂️
 
+  - comment 중 shared_ptr를 std::move 할 필요가 없다고 했다. 이는 std::move를 사용하는 이유에 대해서 오해하고 있었던 것이 있었다. std::move는 사실상 캐스팅하는 작업이며 해당 맥락에서는 쓰일 이유가 전혀 없었다.
 
+  - ```C++
+    // FUNCTION TEMPLATE move
+    template <class _Ty>
+    _NODISCARD constexpr remove_reference_t<_Ty>&& move(_Ty&& _Arg) noexcept { // forward _Arg as movable
+        return static_cast<remove_reference_t<_Ty>&&>(_Arg);
+    }
+    ```
 
 #### 문제점 #1
 

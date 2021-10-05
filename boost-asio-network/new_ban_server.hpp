@@ -65,7 +65,7 @@ public:
 					if (!recv_deque_.empty())
 					{
 						std::string msg = recv_deque_.front();
-						std::cout << "[SERVER] on_update [" << recv_deque_.size() << "] " << msg;
+						std::cout << "[SERVER] on_update [" << recv_deque_.size() << "] " << msg << "\n";
 						recv_deque_.pop_front();
 					}
 				}
@@ -87,6 +87,7 @@ public:
 				else
 				{
 					std::cout << "new connection: " << socket.remote_endpoint() << "\n";
+					// 이 부분이 직관적이지 못하다
 					boost::shared_ptr<server_conn<T>> conn_ = boost::make_shared<server_conn<T>>(
 						std::move(socket), recv_deque_, curr_id_);
 					conn_->start();
@@ -101,7 +102,7 @@ private:
 	boost::asio::ip::tcp::acceptor acceptor_;
 
 	boost::asio::steady_timer update_timer_;
-	tsdeque<std::string> recv_deque_;
+	tsdeque<T> recv_deque_;
 	unsigned short update_rate_ = 0;
 
 	//std::thread thr;

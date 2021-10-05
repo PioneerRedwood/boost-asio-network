@@ -30,10 +30,7 @@ public:
 
 protected:
 	boost::asio::ip::tcp::socket socket_;
-
-	enum { MAX_MSG = 1024 };
-	char read_buffer_[MAX_MSG];
-	char write_buffer_[MAX_MSG];
+	boost::asio::streambuf buffer_;
 
 	bool started_ = false;
 	tsdeque<T>& recv_deque_;
@@ -75,17 +72,8 @@ protected:
 			return;
 		}
 
-		std::fill_n(read_buffer_, MAX_MSG, '\0');
-
-		async_read(socket_, boost::asio::buffer(read_buffer_),
-			[this](const err& error, size_t bytes)->size_t
-			{
-				if (error) { return 0; }
-
-				bool found = std::find(read_buffer_, read_buffer_ + bytes, '\n') < read_buffer_ + bytes;
-				return found ? 0 : 1;
-			},
-			[this, self = this->shared_from_this()](const err& error, size_t bytes)->void
+		boost::asio::async_read_until(socket_, buffer_, '\n',
+			[this, self = this->shared_from_this()](const err error, size_t bytes)->void
 			{
 				if (!started_) { return; }
 
@@ -94,8 +82,11 @@ protected:
 					std::cout << "[ERROR] async_read\n" << error.message() << "\n";
 					return;
 				}
-
-				std::string msg(read_buffer_, bytes);
+				
+				std::istream in(&buffer_);
+				std::string msg;
+				std::getline(in, msg);
+				
 				self->on_message(msg);
 			});
 	}
@@ -108,10 +99,7 @@ protected:
 			return;
 		}
 
-		std::fill_n(write_buffer_, MAX_MSG, '\0');
-		std::copy(msg.begin(), msg.end(), write_buffer_);
-
-		socket_.async_write_some(boost::asio::buffer(write_buffer_, msg.size()),
+		socket_.async_write_some(boost::asio::buffer(msg.data(), msg.size()),
 			[self = this->shared_from_this()](const err& error, size_t bytes)->void
 		{
 			if (error)

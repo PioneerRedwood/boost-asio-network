@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "C:\\Users\\NICE신용정보\\.dotnet\\store\\|arch|\\|tfm|",
+      "C:\\Users\\NICE신용정보\\.nuget\\packages"
+    ]
+  }
+}
