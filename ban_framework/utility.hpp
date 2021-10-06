@@ -6,8 +6,7 @@
 
 #include "predef.hpp"
 
-namespace ban {
-namespace util {
+namespace ban::util {
 class time
 {
 public:
@@ -57,5 +56,4 @@ public:
 		result = date.str();
 	}
 };
-} // util
-} // ban
+} // ban::util

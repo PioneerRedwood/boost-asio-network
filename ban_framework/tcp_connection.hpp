@@ -50,8 +50,7 @@ protected:
 	{
 		if (!socket_.is_open())
 		{
-			logger::log(logger::log_type::console, "[ERROR] tcp_connection socket_ is not open");
-			//std::cout << "[ERROR] socket_ is not open\n";
+			logger::log("[ERROR] tcp_connection socket_ is not open");
 			return;
 		}
 
@@ -62,8 +61,7 @@ protected:
 
 				if (error)
 				{
-					logger::log(logger::log_type::console, "[ERROR] tcp_connection async_read %s", error.message());
-					//std::cout << "[ERROR] async_read\n" << error.message() << "\n";
+					logger::log("[ERROR] tcp_connection async_read %s", error.message().c_str());
 					return;
 				}
 				
@@ -79,8 +77,7 @@ protected:
 	{
 		if (!started_)
 		{
-			logger::log(logger::log_type::console, "[ERROR] tcp_connection write() but not started");
-			//std::cout << "[DEBUG] write() but not started\n";
+			logger::log("[ERROR] tcp_connection write() but not started");
 			return;
 		}
 
@@ -89,8 +86,7 @@ protected:
 		{
 			if (error)
 			{
-				logger::log(logger::log_type::console, "[ERROR] tcp_connection async_write");
-				//std::cout << "[ERROR] async_write\n";
+				logger::log("[ERROR] tcp_connection async_write %s", error.message().c_str());
 				self->stop();
 				return;
 			}

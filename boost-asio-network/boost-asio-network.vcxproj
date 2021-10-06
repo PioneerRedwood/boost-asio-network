@@ -18,15 +18,6 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="tsdeque.hpp" />
-    <ClInclude Include="connection.hpp" />
-    <ClInclude Include="new_ban_server.hpp" />
-    <ClInclude Include="server_conn.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="new_ban_server.cpp" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

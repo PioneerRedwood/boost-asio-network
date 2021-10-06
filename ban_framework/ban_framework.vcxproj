@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="lobby_server.hpp" />
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="login_server.hpp" />
     <ClInclude Include="packet.hpp" />

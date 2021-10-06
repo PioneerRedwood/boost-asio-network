@@ -17,8 +17,28 @@ public:
 		console = 2,
 		db = 3,
 	};
+	
+	static void log(const char* data, ...)
+	{
+		using namespace ban::util;
 
-	// File, Console 동시에 출력하는 기능이 필요해보인다
+		boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+
+		std::string logContent;
+
+		char buffer[512] = { 0, };
+		va_list argueList;
+		va_start(argueList, data);
+		vsprintf_s(buffer, data, argueList);
+		va_end(argueList);
+
+		std::string time_str;
+		util::time::get_time(time_str, time::time_type::detail);
+
+		std::cout << time_str << " " << buffer << "\n";
+	}
+
+	// 타입을 받는게 아니라 설정을 하는 방식이 나을 듯
 	static void log(log_type type, const char* data, ...)
 	{
 		using namespace ban::util;

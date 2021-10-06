@@ -1,17 +1,18 @@
 #pragma once
 #include "connection.hpp"
+#include "tsdeque.hpp"
 
 template<typename T>
 class client_conn : public connection<T>
 {
 public:
-	client_conn(boost::asio::ip::tcp::socket socket, std::deque<T>& recv_deque)
+	client_conn(boost::asio::ip::tcp::socket socket, tsdeque<T>& recv_deque)
 		: connection<T>(std::move(socket), recv_deque)
 	{}
 
 	static boost::shared_ptr<client_conn<T>> new_(boost::asio::ip::tcp::endpoint ep,
 		boost::asio::ip::tcp::socket socket,
-		std::deque<T>& deque)
+		tsdeque<T>& deque)
 	{
 		boost::shared_ptr<client_conn<T>> new_(new client_conn<T>(std::move(socket), deque));
 		new_->start(ep);

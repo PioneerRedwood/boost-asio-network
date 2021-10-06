@@ -91,7 +91,7 @@ private:
 	boost::shared_ptr<client_conn<T>> conn_;
 
 	boost::asio::deadline_timer update_timer_;
-	std::deque<std::string> recv_deque_;
+	tsdeque<T> recv_deque_;
 	unsigned short update_rate_ = 0;
 
 	std::thread thr;
