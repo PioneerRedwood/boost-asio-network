@@ -27,7 +27,7 @@ boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워�
 
 ## [boost-asio study with e-book pdf](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/Boost_Asio_Study)
 
-## [boost-asio debugging](https://github.com/PioneerRedwood/boost-asio-network/boost-asio-debugging)
+## [boost-asio debugging](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-debugging)
 
 ## End of works?
 
