@@ -2,6 +2,9 @@
 #include "predef.hpp"
 #include "logger.hpp"
 
+namespace io = boost::asio;
+using tcp = io::ip::tcp;
+
 namespace ban
 {
 template<typename T>
@@ -12,24 +15,32 @@ class tcp_connection
 public:
 	using err = boost::system::error_code;
 
-protected:
-	boost::asio::ip::tcp::socket socket_;
-	boost::asio::streambuf buffer_;
+	enum class status
+	{
+		connected,
+		disconnected,
+	};
 
-	bool started_ = false;
+protected:
+	tcp::socket socket_;
+	io::streambuf buffer_;
+
+	status stat_;
 	tsdeque<T>& recv_deque_;
 public:
-	tcp_connection(boost::asio::ip::tcp::socket socket, tsdeque<T>& recv_deque)
+	tcp_connection(tcp::socket socket, tsdeque<T>& recv_deque)
 		: socket_(std::move(socket)), recv_deque_(recv_deque)
-	{}
+	{
+		stat_ = status::disconnected;
+	}
 
-	bool started() const { return started_; }
+	bool connected() const { return stat_ == status::connected ? true : false; }
 
-	boost::asio::ip::tcp::socket& socket() { return socket_; }
+	tcp::socket& socket() { return socket_; }
 
 	void stop()
 	{
-		started_ = false;
+		stat_ = status::disconnected;
 		socket_.close();
 	}
 
@@ -54,14 +65,15 @@ protected:
 			return;
 		}
 
-		boost::asio::async_read_until(socket_, buffer_, '\n',
+		io::async_read_until(socket_, buffer_, '\n',
 			[this, self = this->shared_from_this()](const err error, size_t bytes)->void
 			{
-				if (!started_) { return; }
+				if (!connected()) { return; }
 
 				if (error)
 				{
 					logger::log("[ERROR] tcp_connection async_read %s", error.message().c_str());
+					stat_ = status::disconnected;
 					return;
 				}
 				
@@ -75,13 +87,13 @@ protected:
 
 	void write(const std::string& msg)
 	{
-		if (!started_)
+		if (!connected())
 		{
 			logger::log("[ERROR] tcp_connection write() but not started");
 			return;
 		}
 
-		socket_.async_write_some(boost::asio::buffer(msg.data(), msg.size()),
+		socket_.async_write_some(io::buffer(msg.data(), msg.size()),
 			[self = this->shared_from_this()](const err& error, size_t bytes)->void
 		{
 			if (error)

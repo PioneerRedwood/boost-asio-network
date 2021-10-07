@@ -6,7 +6,7 @@ using namespace ban;
 int main()
 {
 	boost::asio::io_context context;
-	ban::login_server<std::string> s1(context, 9000);
+	ban::login_server<std::string> s1(context, 9000, 500);
 	
 	s1.start();
 	
