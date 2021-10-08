@@ -83,11 +83,13 @@ class login_server
 			{
 				// TODO: go to the lobby or matchmaking?
 				conn::write("lobby ok");
+				logger::log(msg.c_str());
 			}
 			else if (msg.find("matchmaking start") != std::string::npos)
 			{
 				conn::write("matchmaking started\n");
 				matching_started_ = true;
+				logger::log(msg.c_str());
 			}
 			else
 			{

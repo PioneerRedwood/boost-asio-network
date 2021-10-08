@@ -31,11 +31,11 @@ int main()
 			}
 			if (key[1] && !old_key[1])
 			{
-				c.ptr()->send("start matching");
+				c.ptr()->send("enter lobby");
 			}
 			if (key[2] && !old_key[2])
 			{
-				c.ptr()->send("enter lobby");
+				c.ptr()->send("start matching");
 			}
 			if (key[3] && !old_key[3])
 			{
