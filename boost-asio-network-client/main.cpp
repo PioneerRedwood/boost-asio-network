@@ -5,14 +5,15 @@ int main()
 {
 	boost::asio::io_context context;
 	ban::login_client<std::string> c(context);
-	c.start("127.0.0.1", 9000, 100);
+	c.start("127.0.0.1", 9000, 500);
+
+	std::thread thr([&]() {context.run(); });
 
 	bool bQuit = false;
 	std::vector<bool> key(5, false);
 	std::vector<bool> old_key(5, false);
 	try
 	{
-		std::cout << "command input activated ..\n";
 		while (!bQuit && c.ptr()->connected())
 		{
 			if (GetForegroundWindow() == GetConsoleWindow())
@@ -21,20 +22,20 @@ int main()
 				key[1] = GetAsyncKeyState('2') & 0x8000;
 				key[2] = GetAsyncKeyState('3') & 0x8000;
 				key[3] = GetAsyncKeyState('4') & 0x8000;
-				key[4] = GetAsyncKeyState('5') & 0x8000;
+				key[4] = GetAsyncKeyState(VK_ESCAPE) & 0x8000;
 			}
 
 			if (key[0] && !old_key[0])
 			{
-				c.ptr()->send("key #1 pressed");
+				c.ptr()->send("login");
 			}
 			if (key[1] && !old_key[1])
 			{
-				c.ptr()->send("ask clients");
+				c.ptr()->send("start matching");
 			}
 			if (key[2] && !old_key[2])
 			{
-				c.ptr()->send("making room red");
+				c.ptr()->send("enter lobby");
 			}
 			if (key[3] && !old_key[3])
 			{
@@ -43,6 +44,7 @@ int main()
 			if (key[4] && !old_key[4])
 			{
 				//c.ptr()->send("disconnect");
+				std::cout << "disconnection key pressed\n";
 				c.stop();
 				bQuit = true;
 			}
@@ -59,5 +61,6 @@ int main()
 		std::cerr << exception.what() << "\n";
 	}
 
+	thr.join();
 	return 0;
 }

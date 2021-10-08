@@ -1,3 +1,7 @@
+// 2021-10-08
+// 최대한 일을 크게 벌리지 말자
+// 로그인, 로비, 매치메이킹 모두 여기서 처리
+
 #pragma once
 #include "tcp_connection.hpp"
 #include "logger.hpp"
@@ -26,10 +30,7 @@ public:
 			return new_;
 		}
 
-		bool connected()
-		{
-			return conn::connected();
-		}
+		bool connected() { return conn::connected(); }
 
 		void start(tcp::endpoint ep)
 		{
@@ -44,8 +45,8 @@ public:
 					}
 					else
 					{
-						logger::log("[CLIENT] request login to server");
-						conn::write("login\n");
+						logger::log("[CLIENT] connect to server");
+						conn::write("ping\n");
 					}
 				});
 		}
@@ -61,7 +62,18 @@ public:
 			else if (msg.find("login ok") != std::string::npos)
 			{
 				conn::recv_deque_.push_back(msg);
-				// TODO: start lobby connection client
+			}
+			else if (msg.find("lobby ok") != std::string::npos)
+			{
+				conn::recv_deque_.push_back(msg);
+			}
+			else if (msg.find("matchmaking started") != std::string::npos)
+			{
+				conn::recv_deque_.push_back(msg);
+			}
+			else if (msg.find("matching found") != std::string::npos)
+			{
+				conn::recv_deque_.push_back(msg);
 			}
 		}
 	};
@@ -89,7 +101,7 @@ public:
 
 			update();
 
-			thr = std::thread([this]() { context_.run(); });
+			//thr = std::thread([this]() { context_.run(); });
 		}
 		catch (const std::exception& exception)
 		{
@@ -102,10 +114,10 @@ public:
 
 	void stop()
 	{
-		if (thr.joinable())
-		{
-			thr.join();
-		}
+		//if (thr.joinable())
+		//{
+		//	thr.join();
+		//}
 		
 		context_.stop();
 		logger::log("[CLIENT] connection is stopped");
@@ -163,6 +175,6 @@ private:
 	tsdeque<T> recv_deque_;
 	unsigned short update_rate_ = 0;
 
-	std::thread thr;
+	//std::thread thr;
 };
 } // ban

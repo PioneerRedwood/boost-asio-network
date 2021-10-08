@@ -76,11 +76,12 @@ protected:
 					stat_ = status::disconnected;
 					return;
 				}
-				
+
 				std::istream in(&buffer_);
 				std::string msg;
 				std::getline(in, msg);
 				
+				buffer_.consume(bytes);
 				self->on_message(msg);
 			});
 	}

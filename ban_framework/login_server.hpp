@@ -1,3 +1,6 @@
+// 2021-10-08
+// 老阑 农霸 国府瘤 富磊
+
 #pragma once
 #include "tcp_connection.hpp"
 #include "logger.hpp"
@@ -15,6 +18,7 @@ class login_server
 	public:
 		unsigned connection_id_;
 		bool timeout_ = false;
+		bool matching_started_ = false;
 	public:
 		login_conn(io::io_context& context, tcp::socket socket, tsdeque<T>& recv_deque, unsigned id)
 			: conn(std::move(socket), recv_deque)
@@ -29,10 +33,7 @@ class login_server
 			check_timeout();
 		}
 
-		bool connected()
-		{
-			return conn::connected();
-		}
+		bool connected() { return conn::connected(); }
 
 	private:
 		io::steady_timer timer_;
@@ -40,7 +41,7 @@ class login_server
 
 		void check_timeout()
 		{
-			timer_.expires_from_now(io::chrono::milliseconds(3000));
+			timer_.expires_from_now(io::chrono::milliseconds(5000));
 			timer_.async_wait(
 				[this, conn = conn::shared_from_this()](const boost::system::error_code& error)->void
 			{
@@ -66,22 +67,36 @@ class login_server
 
 				// TODO: Update login record on login MySQL DB
 				std::stringstream ss1;
-				ss1 << tcp_connection<T>::socket().remote_endpoint();
+				ss1 << conn::socket().remote_endpoint();
 				logger::log("[DEBUG] login request from %s", ss1.str().c_str());
 
 				// TODO: create login session in redis
-				tcp_connection<T>::write(ss.str());
+				conn::write(ss.str());
+
 			}
 			else if (msg.find("ping") != std::string::npos)
 			{
-				tcp_connection<T>::write("ping ok\n");
+				// TODO: send server state
+				conn::write("ping ok\n");
 			}
-			else if (msg.find("ready") != std::string::npos)
+			else if (msg.find("enter lobby") != std::string::npos)
 			{
-
+				// TODO: go to the lobby or matchmaking?
+				conn::write("lobby ok");
+			}
+			else if (msg.find("matchmaking start") != std::string::npos)
+			{
+				conn::write("matchmaking started\n");
+				matching_started_ = true;
+			}
+			else
+			{
+				// TODO: whatever the msg is just send any response
+				conn::write("ping ok\n");
 			}
 		}
 	};
+
 public:
 	login_server(io::io_context& context, io::ip::port_type port, unsigned short update_rate)
 		:context_(context), acceptor_(context, tcp::endpoint(tcp::v4(), port)),
@@ -101,11 +116,8 @@ public:
 		accept();
 		update();
 	}
-
-	void stop()
-	{
-
-	}
+	
+	void stop() {}
 
 	void accept()
 	{
@@ -124,8 +136,7 @@ public:
 					boost::shared_ptr<login_conn> conn_ = boost::make_shared<login_conn>(
 						context_, std::move(socket), recv_deque_, curr_id_);
 
-					clients_.insert(
-						std::make_pair(curr_id_++, conn_));
+					clients_.insert(std::make_pair(curr_id_++, conn_));
 					conn_->start();
 				}
 				accept();
@@ -145,29 +156,46 @@ public:
 					return;
 				}
 
-				// TODO: check disconnected clients
-				std::cout << "[DEBUG] connected clients [ ";
-				std::vector<unsigned short> remove_clients;
-				for (auto iter : clients_)
-				{
-					if (iter.second->connected())
-					{
-						std::cout << iter.first << " ";
-					}
-					else
-					{
-						remove_clients.push_back(iter.first);
-					}
-				}
-				std::cout << "]\n";
-
-				for (auto target : remove_clients)
-				{
-					clients_.erase(target);
-				}
-
+				check_loggedin_clients();
 				update();
 			});
+	}
+
+	// TODO: check disconnected clients
+	void check_loggedin_clients()
+	{
+		std::cout << "[DEBUG] logged in clients [ ";
+		std::vector<unsigned short> remove_clients;
+		for (auto iter : clients_)
+		{
+			if (iter.second->connected())
+			{
+				std::cout << iter.first << " ";
+			}
+			else
+			{
+				remove_clients.push_back(iter.first);
+			}
+		}
+		std::cout << "]\n";
+
+		for (auto target : remove_clients)
+		{
+			clients_.erase(target);
+		}
+	}
+
+	void check_matching_deque()
+	{
+		std::cout << "[DEBUG] matching started clients [ ";
+		for (auto iter : clients_)
+		{
+			if (iter.second->connected())
+			{
+				std::cout << iter.first << " ";
+			}
+		}
+		std::cout << "]\n";
 	}
 
 private:
@@ -177,20 +205,16 @@ private:
 
 	tsdeque<T> recv_deque_;
 
-	// timer related properties here
 	boost::asio::deadline_timer update_timer_;
 	unsigned short update_rate_ = 0;
 
 	std::unordered_map<unsigned short, boost::shared_ptr<login_conn>> clients_;
+	std::deque<unsigned short> matching_deque_;
 
-	// control connected id
 	unsigned short curr_id_;
 	unsigned max_id_ = UINT_MAX;
 
-	//boost::thread_group threads;
-
 	// matching queue
-
 };
 
 } // ban

@@ -6,9 +6,9 @@ boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워�
 - boost::asio 및 Google protobuf 사용 예정 --> 문제점 발생
 - boost 1.77.0 사용
 
-## [boost-asio timer tutorial](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/timer_tutorial)
+## [boost-asio timer tutorial](https://github.com/PioneerRedwood/boost-asio-network/tree/main/timer_tutorial)
 
-## [boost-asio based echonet](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/echonet)
+## [boost-asio based echonet](https://github.com/PioneerRedwood/boost-asio-network/tree/main/echonet)
 
 ## 번외) Visual Studio 2019 boost 설치 및 디버깅
 
@@ -23,9 +23,9 @@ boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워�
   - 링커 - 추가 라이브러리 디렉터리(Additional library directory) - 경로 설정
 - 해결 뒤 다음은 [daytime 동기/비동기 서버-클라이언트 튜토리얼](https://www.boost.org/doc/libs/1_76_0/doc/html/boost_asio/tutorial/tutdaytime1.html)
 
-## [boost-asio making generally](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/red_net)
+## [boost-asio making generally](https://github.com/PioneerRedwood/boost-asio-network/tree/main/red_net)
 
-## [boost-asio study with e-book pdf](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-network/Boost_Asio_Study)
+## [boost-asio study with e-book pdf](https://github.com/PioneerRedwood/boost-asio-network/tree/main/Boost_Asio_Study)
 
 ## [boost-asio debugging](https://github.com/PioneerRedwood/boost-asio-network/tree/main/boost-asio-debugging)
 
@@ -52,3 +52,15 @@ boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워�
   - MySQL, Redis
 
 ## redis installed WSL2 Ubuntu 20.04
+
+## Architecture simple logic
+
+<img src="https://user-images.githubusercontent.com/45554623/136512119-ea6fc152-69eb-47d0-ad4a-69bd1712e8e6.png">
+
+1. 클라이언트는 처음에 로그인 서버에 접속을 한다. (TCP)
+2. 로그인이 성공한다면 로비 서버에 입장한다. (TCP)
+3. 매치를 시작하게 되면 로비 서버에서는 매칭 큐에 넣어둔다. (TCP)
+4. 매칭이 성공하면 1:1 배틀 서버 (UDP)에 입장한다.
+5. 배틀이 끝나면 로비로 다시 돌아온다.
+6. [3]에서 다시 시작
+

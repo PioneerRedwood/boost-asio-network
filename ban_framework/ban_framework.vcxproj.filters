@@ -21,9 +21,6 @@
     <ClInclude Include="login_server.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="packet.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="utility.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -34,9 +31,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="predef.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="lobby_server.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
