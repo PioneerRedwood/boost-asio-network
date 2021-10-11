@@ -10,6 +10,15 @@
 
 namespace ban::packet 
 {
+class common_msg
+{
+	std::vector<std::string> common_str
+	{
+		"ping", "login", 
+	};
+
+};
+
 class header
 {
 public:

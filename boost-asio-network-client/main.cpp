@@ -5,10 +5,15 @@ int main()
 {
 	boost::asio::io_context context;
 	ban::login_client<std::string> c(context);
-	c.start("127.0.0.1", 9000, 500);
+	
+	if (c.start("127.0.0.1", 9000, 2000))
+	{
+		std::cout << "client main login_client started .. \n";
+	}
 
-	std::thread thr([&]() {context.run(); });
-
+#if 1
+	//std::thread thr([&]() {context.run(); });
+	// 스레드 사용이 안전한지 모르겠다
 	bool bQuit = false;
 	std::vector<bool> key(5, false);
 	std::vector<bool> old_key(5, false);
@@ -39,7 +44,7 @@ int main()
 			}
 			if (key[3] && !old_key[3])
 			{
-				c.ptr()->send("searching room");
+				//c.ptr()->send("searching room");
 			}
 			if (key[4] && !old_key[4])
 			{
@@ -60,7 +65,7 @@ int main()
 	{
 		std::cerr << exception.what() << "\n";
 	}
-
-	thr.join();
+#endif
+	//thr.join();
 	return 0;
 }

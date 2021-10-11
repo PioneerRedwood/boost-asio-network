@@ -21,7 +21,7 @@ class login_server
 		bool matching_started_ = false;
 	public:
 		login_conn(io::io_context& context, tcp::socket socket, tsdeque<T>& recv_deque, unsigned id)
-			: conn(std::move(socket), recv_deque)
+			: conn(context, std::move(socket), recv_deque)
 			, connection_id_(id), timer_(context)
 			, last_time_point_(io::chrono::system_clock::now())
 		{}
@@ -35,13 +35,20 @@ class login_server
 
 		bool connected() { return conn::connected(); }
 
+		void set_timeout_period(unsigned new_period)
+		{
+			timeout_period_ = new_period;
+		}
 	private:
 		io::steady_timer timer_;
 		io::chrono::system_clock::time_point last_time_point_;
+		unsigned timeout_period_;
 
 		void check_timeout()
 		{
-			timer_.expires_from_now(io::chrono::milliseconds(5000));
+			if (!conn::connected())	{ return; }
+
+			timer_.expires_from_now(io::chrono::milliseconds(timeout_period_));
 			timer_.async_wait(
 				[this, conn = conn::shared_from_this()](const boost::system::error_code& error)->void
 			{
@@ -72,7 +79,6 @@ class login_server
 
 				// TODO: create login session in redis
 				conn::write(ss.str());
-
 			}
 			else if (msg.find("ping") != std::string::npos)
 			{
@@ -82,10 +88,10 @@ class login_server
 			else if (msg.find("enter lobby") != std::string::npos)
 			{
 				// TODO: go to the lobby or matchmaking?
-				conn::write("lobby ok");
+				conn::write("lobby ok\n");
 				logger::log(msg.c_str());
 			}
-			else if (msg.find("matchmaking start") != std::string::npos)
+			else if (msg.find("start matching") != std::string::npos)
 			{
 				conn::write("matchmaking started\n");
 				matching_started_ = true;
@@ -94,13 +100,13 @@ class login_server
 			else
 			{
 				// TODO: whatever the msg is just send any response
-				conn::write("ping ok\n");
+				//conn::write("ping ok\n");
 			}
 		}
 	};
 
 public:
-	login_server(io::io_context& context, io::ip::port_type port, unsigned short update_rate)
+	login_server(io::io_context& context, io::ip::port_type port, unsigned update_rate)
 		:context_(context), acceptor_(context, tcp::endpoint(tcp::v4(), port)),
 		update_timer_(context), update_rate_(update_rate)
 	{}
@@ -148,7 +154,7 @@ public:
 	// check the connected clients
 	void update()
 	{
-		update_timer_.expires_from_now(boost::posix_time::milliseconds(update_rate_));
+		update_timer_.expires_from_now(io::chrono::milliseconds(update_rate_));
 		update_timer_.async_wait(
 			[this](const boost::system::error_code& error)->void
 			{
@@ -201,13 +207,12 @@ public:
 	}
 
 private:
-	// basic
 	io::io_context& context_;
 	tcp::acceptor acceptor_;
 
 	tsdeque<T> recv_deque_;
 
-	boost::asio::deadline_timer update_timer_;
+	boost::asio::steady_timer update_timer_;
 	unsigned short update_rate_ = 0;
 
 	std::unordered_map<unsigned short, boost::shared_ptr<login_conn>> clients_;

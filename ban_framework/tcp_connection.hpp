@@ -27,9 +27,10 @@ protected:
 
 	status stat_;
 	tsdeque<T>& recv_deque_;
+	io::io_context::strand strand_;
 public:
-	tcp_connection(tcp::socket socket, tsdeque<T>& recv_deque)
-		: socket_(std::move(socket)), recv_deque_(recv_deque)
+	tcp_connection(io::io_context& context, tcp::socket socket, tsdeque<T>& recv_deque)
+		: socket_(std::move(socket)), recv_deque_(recv_deque), strand_(context)
 	{
 		stat_ = status::disconnected;
 	}
@@ -65,7 +66,11 @@ protected:
 			return;
 		}
 
+		//std::fill_n(read_buffer_.begin(), read_buffer_.end(), '\0');
+		//io::async_read(socket_, io::buffer(read_buffer_), '\n',
+		//io::streambuf buf;
 		io::async_read_until(socket_, buffer_, '\n',
+			strand_.wrap(
 			[this, self = this->shared_from_this()](const err error, size_t bytes)->void
 			{
 				if (!connected()) { return; }
@@ -77,13 +82,16 @@ protected:
 					return;
 				}
 
+				// 2021-10-10 문제 발생 지점
+				logger::log("streambuf.size(): %d, bytes_transferred: %d", buffer_.size(), bytes);
 				std::istream in(&buffer_);
 				std::string msg;
 				std::getline(in, msg);
-				
+				//logger::log("streambuf.size(): %d, bytes_transferred: %d, data: %s", buffer_.size(), bytes, msg.c_str());
+
 				buffer_.consume(bytes);
 				self->on_message(msg);
-			});
+			}));
 	}
 
 	void write(const std::string& msg)
@@ -94,6 +102,22 @@ protected:
 			return;
 		}
 
+		socket_.async_write_some(io::buffer(msg.data(), msg.find('\n') + 1),
+			strand_.wrap(
+			[self = this->shared_from_this()](const err& error, size_t bytes)->void
+			{
+				if (error)
+				{
+					logger::log("[ERROR] tcp_connection async_write %s", error.message().c_str());
+					self->stop();
+					return;
+				}
+				else
+				{
+					self->read();
+				}
+			}));
+#if 0
 		socket_.async_write_some(io::buffer(msg.data(), msg.size()),
 			[self = this->shared_from_this()](const err& error, size_t bytes)->void
 		{
@@ -108,6 +132,7 @@ protected:
 				self->read();
 			}
 		});
+#endif
 	}
 };
 
