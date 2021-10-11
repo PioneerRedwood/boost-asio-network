@@ -22,6 +22,7 @@ public:
 	};
 
 protected:
+	io::io_context& context_;
 	tcp::socket socket_;
 	io::streambuf buffer_;
 
@@ -30,7 +31,7 @@ protected:
 	io::io_context::strand strand_;
 public:
 	tcp_connection(io::io_context& context, tcp::socket socket, tsdeque<T>& recv_deque)
-		: socket_(std::move(socket)), recv_deque_(recv_deque), strand_(context)
+		: context_(context), socket_(std::move(socket)), recv_deque_(recv_deque), strand_(context)
 	{
 		stat_ = status::disconnected;
 	}
@@ -47,7 +48,11 @@ public:
 
 	void send(const std::string& msg)
 	{
-		write(msg + "\n");
+		io::post(context_, strand_.wrap(
+			[self = this->shared_from_this(), msg]()
+			{
+				self->write(msg + "\n");
+			}));
 	}
 
 	std::deque<T> get_recv_deque()
