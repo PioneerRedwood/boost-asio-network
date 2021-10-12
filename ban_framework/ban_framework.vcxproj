@@ -72,7 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\SDK\boost_1_77_0;</ExternalIncludePath>
+    <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\SDK\boost_1_77_0;C:\Temp\boost_1_77_0\boost_1_77_0;</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -91,12 +91,12 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\SDK\boost_1_77_0;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\SDK\boost_1_77_0;C:\Temp\boost_1_77_0\boost_1_77_0;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\SDK\boost_1_77_0\stage\lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\SDK\boost_1_77_0\stage\lib;C:\Temp\boost_1_77_0\boost_1_77_0\stage\lib;</AdditionalLibraryDirectories>
       <PerUserRedirection>true</PerUserRedirection>
     </Link>
   </ItemDefinitionGroup>
@@ -152,6 +152,9 @@
     <ClInclude Include="login_server.hpp" />
     <ClInclude Include="packet.hpp" />
     <ClInclude Include="predef.hpp" />
+    <ClInclude Include="udp_client.hpp" />
+    <ClInclude Include="udp_connection.hpp" />
+    <ClInclude Include="udp_server.hpp" />
     <ClInclude Include="utility.hpp" />
     <ClInclude Include="tcp_connection.hpp" />
     <ClInclude Include="tsdeque.hpp" />

@@ -4,6 +4,7 @@
 #pragma once
 #include "tcp_connection.hpp"
 #include "logger.hpp"
+#include "packet.hpp"
 
 namespace io = boost::asio;
 using tcp = io::ip::tcp;
@@ -17,13 +18,17 @@ class login_server
 		using conn = tcp_connection<T>;
 	public:
 		unsigned connection_id_;
-		bool timeout_ = false;
 		bool matching_started_ = false;
+
+		io::steady_timer timer_;
+		io::chrono::system_clock::time_point last_time_point_;
+		unsigned timeout_;
 	public:
-		login_conn(io::io_context& context, tcp::socket socket, tsdeque<T>& recv_deque, unsigned id)
+		login_conn(io::io_context& context, tcp::socket socket, tsdeque<T>& recv_deque, unsigned id, unsigned short timeout)
 			: conn(context, std::move(socket), recv_deque)
 			, connection_id_(id), timer_(context)
 			, last_time_point_(io::chrono::system_clock::now())
+			, timeout_(timeout)
 		{}
 
 		void start()
@@ -37,25 +42,22 @@ class login_server
 
 		void set_timeout_period(unsigned new_period)
 		{
-			timeout_period_ = new_period;
+			timeout_ = new_period;
 		}
-	private:
-		io::steady_timer timer_;
-		io::chrono::system_clock::time_point last_time_point_;
-		unsigned timeout_period_;
 
+	private:
 		void check_timeout()
 		{
 			if (!conn::connected())	{ return; }
 
-			timer_.expires_from_now(io::chrono::milliseconds(timeout_period_));
+			timer_.expires_from_now(io::chrono::milliseconds(timeout_));
 			timer_.async_wait(
 				[this, conn = conn::shared_from_this()](const boost::system::error_code& error)->void
 			{
-				if (round<io::chrono::seconds>(io::chrono::system_clock::now() - last_time_point_) > io::chrono::seconds(3))
+				if (round<io::chrono::seconds>(io::chrono::system_clock::now() - last_time_point_) > io::chrono::seconds(timeout_))
 				{
+					logger::log("[DEBUG] login_server::login_conn timeout");
 					conn->stop();
-					logger::log("timeout ..");
 				}
 				else
 				{
@@ -66,34 +68,41 @@ class login_server
 
 		void on_message(const std::string& msg)
 		{
+#if 0
+			logger::log("[DEBUG] on_message %s", msg.c_str());
+#endif
 			last_time_point_ = io::chrono::system_clock::now();
 			if (msg.find("login") != std::string::npos)
 			{
 				std::stringstream ss;
-				ss << "login ok " << connection_id_ << "\n";
+				ss << "login ok " << connection_id_;
 
 				// TODO: Update login record on login MySQL DB
 				std::stringstream ss1;
 				ss1 << conn::socket().remote_endpoint();
 				logger::log("[DEBUG] login request from %s", ss1.str().c_str());
+				
+				conn::write(ss1.str());
+				
+				// TODO: Serialize packet to send
 
 				// TODO: create login session in redis
-				conn::write(ss.str());
+				
 			}
 			else if (msg.find("ping") != std::string::npos)
 			{
 				// TODO: send server state
-				conn::write("ping ok\n");
+				conn::write("ping ok");
 			}
 			else if (msg.find("enter lobby") != std::string::npos)
 			{
 				// TODO: go to the lobby or matchmaking?
-				conn::write("lobby ok\n");
+				conn::write("lobby ok");
 				logger::log(msg.c_str());
 			}
 			else if (msg.find("start matching") != std::string::npos)
 			{
-				conn::write("matchmaking started\n");
+				conn::write("matchmaking started");
 				matching_started_ = true;
 				logger::log(msg.c_str());
 			}
@@ -115,12 +124,12 @@ public:
 	{
 		context_.stop();
 
-		logger::log("[DEBUG] login_server stopped..");
+		logger::log("[DEBUG] login_server stopped");
 	}
 
 	void start()
 	{
-		logger::log("[DEBUG] login_server start..");
+		logger::log("[DEBUG] login_server started");
 		accept();
 		update();
 	}
@@ -134,7 +143,7 @@ public:
 			{
 				if (error)
 				{
-					logger::log("[ERROR] login_server async_accept.. %s", error.message());
+					logger::log("[ERROR] login_server async_accept %s", error.message());
 					return;
 				}
 				else
@@ -142,7 +151,7 @@ public:
 					logger::log("[DEBUG] new connection %d", curr_id_);
 
 					boost::shared_ptr<login_conn> conn_ = boost::make_shared<login_conn>(
-						context_, std::move(socket), recv_deque_, curr_id_);
+						context_, std::move(socket), recv_deque_, curr_id_, update_rate_);
 
 					clients_.insert(std::make_pair(curr_id_++, conn_));
 					conn_->start();
@@ -160,7 +169,7 @@ public:
 			{
 				if (error)
 				{
-					logger::log("[ERROR] login_server update .. %s", error.message());
+					logger::log("[ERROR] login_server update %s", error.message());
 					return;
 				}
 
@@ -172,21 +181,23 @@ public:
 	// TODO: check disconnected clients
 	void check_loggedin_clients()
 	{
-		std::cout << "[DEBUG] logged in clients [ ";
+		std::stringstream ss;
+		ss << "[DEBUG] logged in clients [ ";
 		std::vector<unsigned short> remove_clients;
 		for (auto iter : clients_)
 		{
 			if (iter.second->connected())
 			{
-				std::cout << iter.first << " ";
+				ss << iter.first << " shared_count: " << iter.second.use_count() << " ";
 			}
 			else
 			{
 				remove_clients.push_back(iter.first);
 			}
 		}
-		std::cout << "]\n";
+		ss << "]";
 
+		logger::log(ss.str().c_str());
 		for (auto target : remove_clients)
 		{
 			clients_.erase(target);

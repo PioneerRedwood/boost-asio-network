@@ -1,8 +1,16 @@
 #pragma once
 #include "login_client.hpp"
+#include "udp_client.hpp"
+
+using namespace ban;
+namespace io = boost::asio;
+using udp = io::ip::udp;
+
+#include <windows.h>
 
 int main()
 {
+#if 0
 	boost::asio::io_context context;
 	ban::login_client<std::string> c(context);
 	
@@ -11,7 +19,6 @@ int main()
 		std::cout << "client main login_client started .. \n";
 	}
 
-#if 1
 	//std::thread thr([&]() {context.run(); });
 	// 스레드 사용이 안전한지 모르겠다
 	bool bQuit = false;
@@ -65,7 +72,121 @@ int main()
 	{
 		std::cerr << exception.what() << "\n";
 	}
-#endif
 	//thr.join();
+#else
+	io::io_context context;
+	udp_client udp_client_(context, "127.0.0.1", "12190", 1);
+	login_client<std::string> login_client_(context);
+	login_client_.start("127.0.0.1", 9000, 3000);
+	
+	// Windows console input example code
+	// https://docs.microsoft.com/en-us/windows/console/reading-input-buffer-events
+#if 1
+	DWORD cNumRead, fdwMode, i;
+	INPUT_RECORD irInBuf[128];
+	int counter = 0;
+
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	DWORD fdwSaveOldMode;
+
+	if (hStdin == INVALID_HANDLE_VALUE)
+	{
+		logger::log("[ERROR] GetStdHandle");
+		return -1;
+	}
+
+	if (!GetConsoleMode(hStdin, &fdwSaveOldMode))
+	{
+		logger::log("[ERROR] GetConsoleMode");
+		return -1;
+	}
+
+	fdwMode = ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
+	if (!SetConsoleMode(hStdin, fdwMode))
+	{
+		logger::log("[ERROR] SetConsoleMode");
+		return -1;
+	}
+
+	//while (counter++ <= 100)
+	while (true)
+	{
+		if (!ReadConsoleInput(
+			hStdin,
+			irInBuf,
+			128,
+			&cNumRead))
+		{
+			logger::log("[ERROR] ReadConsoleInput");
+			return -1;
+		}
+
+		logger::log("[DEBUG] cNumRead: %d", cNumRead);
+		for (i = 0; i < cNumRead; i++)
+		{
+			switch (irInBuf[i].EventType)
+			{
+			case KEY_EVENT: // keyboard input
+				if (irInBuf[i].Event.KeyEvent.bKeyDown)
+				{
+					udp_client_.send("KEY DOWN");
+				}
+				break;
+
+			case MOUSE_EVENT: // mouse input 이건 작동하지 않음
+				MOUSE_EVENT_RECORD mer = irInBuf[i].Event.MouseEvent;
+#ifndef MOUSE_HWHEELED
+#define MOUSE_HWHEELED 0x0008
+#endif
+				udp_client_.send("Mouse event: ");
+
+				switch (mer.dwEventFlags)
+				{
+				case 0:
+
+					if (mer.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED)
+					{
+						udp_client_.send("left button pressed");
+					}
+					else if (mer.dwButtonState == RIGHTMOST_BUTTON_PRESSED)
+					{
+						udp_client_.send("right button pressed");
+					}
+					else
+					{
+						udp_client_.send("button pressed");
+					}
+					break;
+				case DOUBLE_CLICK:
+					udp_client_.send("double clicked");
+					break;
+				case MOUSE_HWHEELED:
+					udp_client_.send("horizontal mouse wheel");
+					break;
+				case MOUSE_MOVED:
+					udp_client_.send("mouse moved");
+					break;
+				case MOUSE_WHEELED:
+					udp_client_.send("vertical mouse wheel");
+					break;
+				default:
+					udp_client_.send("unknown");
+					break;
+				}
+				break;
+
+			default:
+				logger::log("Unknown event type");
+				break;
+			}
+		}
+	}
+	SetConsoleMode(hStdin, fdwSaveOldMode);
+
+#endif
+
+
+	context.run();
+#endif
 	return 0;
 }
