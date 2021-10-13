@@ -4,7 +4,7 @@
 #define _WIN32_WINNT 0x0501
 #endif 
 
-// for standard libs
+// standard libs
 #include <thread>
 #include <mutex>
 #include <optional>
@@ -12,8 +12,10 @@
 #include <fstream>
 #include <unordered_map>
 #include <string>
+#include <memory>
+#include <type_traits>
 
-// for boost libs
+// boost libs
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/asio/placeholders.hpp>
@@ -25,11 +27,11 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/container/deque.hpp>
 
-// for mysql libs
+// mysql libs
 //#include <mysqlx/xdevapi.h>
 
 // not ban libs
-#include "tsdeque.hpp"
+//#include "tsdeque.hpp"
 
 namespace ban
 {

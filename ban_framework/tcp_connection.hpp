@@ -28,11 +28,10 @@ protected:
 	io::streambuf buffer_;
 
 	status stat_;
-	tsdeque<T>& recv_deque_;
 	io::io_context::strand strand_;
 public:
-	tcp_connection(io::io_context& context, tcp::socket socket, tsdeque<T>& recv_deque)
-		: context_(context), socket_(std::move(socket)), recv_deque_(recv_deque), strand_(context)
+	tcp_connection(io::io_context& context, tcp::socket socket)
+		: context_(context), socket_(std::move(socket)), strand_(context)
 	{
 		stat_ = status::disconnected;
 	}
@@ -49,10 +48,8 @@ public:
 
 	void send(const T& msg) { write(msg); }
 
-	std::deque<T> get_recv_deque() { return recv_deque_; }
-
 protected:
-	virtual void on_message(const std::string& msg) {}
+	virtual void on_message(const T& msg) {}
 
 	void read()
 	{
@@ -62,8 +59,6 @@ protected:
 			return;
 		}
 #if 1
-		//io::streambuf buf;
-
 		io::async_read_until(socket_, buffer_, '\n',
 			strand_.wrap(
 			[this, self = this->shared_from_this()](const err error, size_t bytes)->void
@@ -80,7 +75,7 @@ protected:
 				// 2021-10-10 문제 발생 지점
 				//logger::log("streambuf.size(): %d, bytes_transferred: %d", buffer_.size(), bytes);
 				std::istream in(&buffer_);
-				std::string msg;
+				T msg;
 				// read one line
 				std::getline(in, msg);
 
