@@ -7,7 +7,7 @@ using namespace ban;
 using mem = ban::util::memdb;
 
 namespace io = boost::asio;
-using udp = io::ip::udp;
+using udp = boost::asio::ip::udp;
 
 using ushort = unsigned short;
 int main()
@@ -27,14 +27,12 @@ int main()
 #else
 	try
 	{
-		io::io_context context;
-
 		mem::instance().add<unsigned short>("port", 9000);
 		mem::instance().add<unsigned short>("server update_rate", 7000);
 
 		mem::instance().add<bool>("login_server check_client 1", true);
-		mem::instance().add<bool>("login_server check_client 2", true);
-		mem::instance().add<bool>("login_server check_client 3", true);
+		mem::instance().add<bool>("login_server check_client 2", false);
+		mem::instance().add<bool>("login_server check_client 3", false);
 
 		ushort port = 0;
 		ushort period = 0;
@@ -42,18 +40,20 @@ int main()
 		if ((mem::instance().get<unsigned short>("port", port) && port != 0) 
 			&& (mem::instance().get<unsigned short>("server update_rate", period) && period != 0))
 		{
-			login_server<std::string> login_server_(context, port, period);
+			io::io_context context;
+
+			auth::login_server<std::string> login_server_(context, port, period);
 			logger::log("[DEBUG] login_server created port: %d, update_rate: %d", port, period);
 			login_server_.start();
 
-			udp_server server(context, 1);
+			udp_server<std::string> server(context, 1, 12190);
 
 			context.run();
 		}
 	}
 	catch (const std::exception& e)
 	{
-		std::cerr << e.what() << "\n";
+		logger::log("[DEBUG] main() exception %s", e.what());
 	}
 #endif
 	return 0;

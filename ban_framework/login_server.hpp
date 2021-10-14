@@ -22,7 +22,7 @@ using tcp = io::ip::tcp;
 * - DB/redis
 * 
 */
-namespace ban {
+namespace ban::auth {
 template<typename T>
 class login_server;
 
@@ -51,7 +51,9 @@ public:
 		, timer_(context)
 		, last_time_point_(io::chrono::system_clock::now())
 		, timeout_(timeout)
-	{}
+	{
+		//logger::log("[DEBUG] %d", timeout);
+	}
 
 	void start()
 	{
@@ -73,7 +75,7 @@ private:
 		timer_.async_wait(
 			[this, conn = conn::shared_from_this()](const boost::system::error_code& error)->void
 		{
-			if (round<io::chrono::seconds>(io::chrono::system_clock::now() - last_time_point_) > io::chrono::seconds(timeout_))
+			if (std::chrono::round<io::chrono::seconds>(io::chrono::system_clock::now() - last_time_point_) > io::chrono::seconds(timeout_))
 			{
 				logger::log("[DEBUG] login_server::login_conn timeout");
 				conn->stop();
@@ -110,10 +112,9 @@ private:
 
 			logged_in_ = true;
 
-			owner_.loggend_in_clients_.try_emplace(connection_id_, owner_.connected_clients_[connection_id_]);
+			//owner_.loggend_in_clients_.try_emplace(connection_id_, owner_.connected_clients_[connection_id_]);
 			
 			// TODO: create login session in redis
-
 		}
 		else if (msg.find("start matching") != std::string::npos)
 		{
@@ -134,8 +135,6 @@ private:
 template<typename T>
 class login_server
 {
-	
-
 public:
 	login_server(io::io_context& context, io::ip::port_type port, unsigned short period)
 		:context_(context), acceptor_(context, tcp::endpoint(tcp::v4(), port)),
@@ -151,7 +150,13 @@ public:
 	void start()
 	{
 		logger::log("[DEBUG] login_server start");
+		mem::instance().get<bool>("login_server check_client 1", check_value_1);
+		mem::instance().get<bool>("login_server check_client 2", check_value_2);
+		mem::instance().get<bool>("login_server check_client 3", check_value_3);
+
 		accept();
+
+		//2021-10-14 서버의 상태를 추적하는 클래스를 따로 만들어야겠다
 		update();
 	}
 
@@ -184,11 +189,19 @@ public:
 				{
 					logger::log("[DEBUG] new connection %d", curr_id_);
 
-					std::shared_ptr<login_conn<T>> conn_ = std::make_shared<login_conn<T>>(
-						*this, context_, std::move(socket), curr_id_, period_);
+					try
+					{
+						std::shared_ptr<login_conn<T>> conn_ = std::make_shared<login_conn<T>>(
+							*this, context_, std::move(socket), curr_id_, period_);
 
-					connected_clients_.insert(std::make_pair(curr_id_++, conn_));
-					conn_->start();
+						connected_clients_.try_emplace(curr_id_++, conn_);
+
+						conn_->start();
+					}
+					catch (const std::exception& e)
+					{
+						logger::log("[DEBUG] async_accept exception %s", e.what());
+					}
 				}
 				accept();
 			});
@@ -207,24 +220,21 @@ public:
 					return;
 				}
 
-				bool check_value_1;
-				bool check_value_2;
-				bool check_value_3;
+				
 
 				// memdb에 설정된 것에 따라 적용
-				if (mem::instance().get<bool>("login_server check_client 1", check_value_1) && check_value_1)
+				if (check_value_1)
 				{
 					check_connections();
 				}
-				if (mem::instance().get<bool>("login_server check_client 2", check_value_2) && check_value_2)
+				if (check_value_2)
 				{
 					check_loggedin_clients();
 				}
-				if (mem::instance().get<bool>("login_server check_client 3", check_value_3) && check_value_3)
+				if (check_value_3)
 				{
 					check_matching_deque();
 				}
-
 
 				update();
 			});
@@ -242,11 +252,21 @@ public:
 			if (iter.second->connected())
 			{
 				ss << iter.first << " ";
+				if (iter.second->logged_in_)
+				{
+					ss << "login ";
+				}
+
+				if (iter.second->matching_started_)
+				{
+					ss << "matching started ";
+				}
 			}
 			else
 			{
 				remove_clients.push_back(iter.first);
 			}
+
 		}
 		ss << "]";
 		logger::log(ss.str().c_str());
@@ -293,6 +313,10 @@ public:
 
 public:
 	// 2021-10-13 더 효율적인 방법을 모색해야함
+	bool check_value_1 = false;
+	bool check_value_2 = false;
+	bool check_value_3 = false;
+
 	std::unordered_map<unsigned short, std::shared_ptr<login_conn<T>>> connected_clients_;
 	std::unordered_map<unsigned short, std::shared_ptr<login_conn<T>>> loggend_in_clients_;
 	std::unordered_map<unsigned short, std::shared_ptr<login_conn<T>>> matching_clients_;

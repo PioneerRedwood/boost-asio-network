@@ -3,9 +3,9 @@
 #include "logger.hpp"
 
 namespace io = boost::asio;
-using tcp = io::ip::tcp;
+using tcp = boost::asio::ip::tcp;
 
-namespace ban::login {
+namespace ban::auth {
 template<typename T>
 class login_client;
 
@@ -19,12 +19,21 @@ public:
 		: owner_(owner), conn(context, std::move(socket)), timer_(context), timeout_(timeout)
 	{}
 
-	static boost::shared_ptr<login_conn> new_(client& owner, io::io_context& context, tcp::endpoint ep,
+	static std::shared_ptr<login_conn> new_(client& owner, io::io_context& context, tcp::endpoint ep,
 		tcp::socket socket, unsigned short timeout)
 	{
-		boost::shared_ptr<login_conn> new_(new login_conn(owner, context, std::move(socket), timeout));
-		new_->start(ep);
-		return new_;
+		try
+		{
+			std::shared_ptr<login_conn> new_(new login_conn(owner, context, std::move(socket), timeout));
+			//std::shared_ptr<login_conn> new_(new login_conn(context, std::move(socket), timeout));
+			new_->start(ep);
+			return new_;
+		}
+		catch (const std::exception& e)
+		{
+			logger::log("[ERROR] make_shared %s", e.what());
+			return nullptr;
+		}
 	}
 
 	bool connected() { return conn::connected(); }
@@ -42,9 +51,9 @@ public:
 				}
 				else
 				{
-					logger::log("[CLIENT] connect to server");
-					alive_ping();
+					logger::log("[DEBUG] connect to server");
 					conn::write("login");
+					alive_ping();
 				}
 			});
 	}
@@ -62,7 +71,7 @@ private:
 		}
 		else if (msg.find("login ok") != std::string::npos)
 		{
-			conn::write("start matchmaking");
+			conn::write("start matching");
 			owner_.logged_in_ = true;
 		}
 		else if (msg.find("matchmaking started") != std::string::npos)
@@ -98,6 +107,7 @@ private:
 				}
 			});
 	}
+
 private:
 	io::steady_timer timer_;
 	unsigned short timeout_;
@@ -114,12 +124,12 @@ public:
 
 	~login_client() { stop(); }
 
-	bool start(const std::string& address, io::ip::port_type port, unsigned timeout)
+	bool start(const std::string& address, io::ip::port_type port, unsigned short timeout)
 	{
 		try
 		{
 			// 로그인 클라이언트 인스턴스를 레퍼런스 타입으로 login_conn에 등록
-			logger::log("[CLIENT] starting connect to server");
+			logger::log("[DEBUG] starting connect to server");
 			conn_ = login_conn<T>::new_(
 				*this,
 				context_,
@@ -132,7 +142,7 @@ public:
 		}
 		catch (const std::exception& exception)
 		{
-			std::cerr << exception.what() << "\n";
+			logger::log("[DEBUG] starting login_client ", exception.what());
 			return false;
 		}
 
@@ -148,10 +158,10 @@ public:
 		}
 #endif	
 		context_.stop();
-		logger::log("[CLIENT] connection is stopped");
+		logger::log("[DEBUG] connection is stopped");
 	}
 
-	boost::shared_ptr<login_conn<T>> ptr() { return conn_; }
+	std::shared_ptr<login_conn<T>> ptr() { return conn_; }
 
 	// 일단은 public으로 나중에 어떻게 할지 생각
 	bool logged_in_ = false;
@@ -161,10 +171,8 @@ private:
 
 private:
 	io::io_context& context_;
-	boost::shared_ptr<login_conn<T>> conn_;
+	std::shared_ptr<login_conn<T>> conn_;
 
-#if 1
 	std::thread thr;
-#endif
 };
 } // ban

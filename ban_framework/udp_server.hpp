@@ -5,10 +5,11 @@
 using namespace ban;
 
 namespace io = boost::asio;
-using udp = io::ip::udp;
+using udp = boost::asio::ip::udp;
 
 namespace ban
 {
+template<typename T>
 class udp_server
 {
 private:
@@ -16,56 +17,22 @@ private:
 	udp::socket socket_;
 	udp::endpoint endpoint_;
 
-	boost::array<char, 2048> recv_buffer_;
-	std::string dummy;
+	std::array<char, 2048> buffer_;
 
 	io::steady_timer timer_;
 	unsigned short period_;
 public:
-	udp_server(io::io_context& context, unsigned short period)
-		: context_(context), socket_(context, udp::endpoint(udp::v4(), 12190))
+	udp_server(io::io_context& context, unsigned short period, unsigned short port)
+		: context_(context), socket_(context, udp::endpoint(udp::v4(), port))
 		, timer_(context), period_(period)
 	{
 		logger::log("[DEBUG] udp_server started");
-#if 0
-		dummy = std::string("\
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-				HELLO THIS IS DUMMY\0\n\r\n\tHELLO \r\
-			");
-#endif
 		//update();
 		receive();
 	}
 private:
-	void send(const std::string& msg)
+	void send(const T& msg)
 	{
-		//std::shared_ptr<std::string> message(new std::string("HELLO!"));
-
 		socket_.async_send_to(io::buffer(msg.data(), msg.size()), endpoint_,
 			[this, msg](const boost::system::error_code& error, std::size_t)->void
 			{
@@ -84,7 +51,7 @@ private:
 
 	void receive()
 	{
-		socket_.async_receive_from(io::buffer(recv_buffer_), endpoint_,
+		socket_.async_receive_from(io::buffer(buffer_), endpoint_,
 			[this](const boost::system::error_code& error, std::size_t)->void
 			{
 				if (error)
@@ -93,8 +60,9 @@ private:
 				}
 				else
 				{
-					logger::log("[DEBUG] udp_server recv msg %s", recv_buffer_.data());
-					send(recv_buffer_.data());
+					// TODO: deserialize the received packet
+					logger::log("[DEBUG] udp_server recv msg %s [%d]", buffer_.data(), buffer_.size());
+					send(buffer_.data());
 				}
 			});
 	}
@@ -111,7 +79,6 @@ private:
 				}
 				else
 				{
-					//send(dummy);
 					update();
 				}
 			});

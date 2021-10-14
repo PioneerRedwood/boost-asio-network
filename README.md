@@ -64,3 +64,5 @@ boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워�
 5. 배틀이 끝나면 로비로 다시 돌아온다.
 6. [3]에서 다시 시작
 
+## Designing of Communication
+

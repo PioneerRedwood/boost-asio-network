@@ -4,7 +4,7 @@
 
 using namespace ban;
 namespace io = boost::asio;
-using udp = io::ip::udp;
+using udp = boost::asio::ip::udp;
 
 #include <windows.h>
 
@@ -73,18 +73,19 @@ int main()
 		std::cerr << exception.what() << "\n";
 	}
 	//thr.join();
-#else
+#endif
 	io::io_context context;
-	login::login_client<std::string> login_client_(context);
+	auth::login_client<std::string> login_client_(context);
 	login_client_.start("127.0.0.1", 9000, 3000);
 
-	if (login_client_.matching_found_)
-	{
-		udp_client udp_client_(context, "127.0.0.1", "12190", 1);
+#if 1
+	udp_client<std::string> udp_client_(context, "127.0.0.1", "12190", 1);
 
+	if (!login_client_.matching_found_)
+	{
 		// Windows console input example code
 		// https://docs.microsoft.com/en-us/windows/console/reading-input-buffer-events
-#if 1
+
 		DWORD cNumRead, fdwMode, i;
 		INPUT_RECORD irInBuf[128];
 		int counter = 0;
@@ -111,9 +112,14 @@ int main()
 			return -1;
 		}
 
-		//while (counter++ <= 100)
 		while (true)
 		{
+			if (!login_client_.ptr()->connected())
+			{
+				logger::log("[DEBUG] login_client disconnected exit");
+				break;
+			}
+
 			if (!ReadConsoleInput(
 				hStdin,
 				irInBuf,
@@ -124,20 +130,22 @@ int main()
 				return -1;
 			}
 
-			logger::log("[DEBUG] cNumRead: %d", cNumRead);
+			// 2021-10-14 어떤걸까?
+			//logger::log("[DEBUG] cNumRead: %d", cNumRead);
 			for (i = 0; i < cNumRead; i++)
 			{
 				switch (irInBuf[i].EventType)
 				{
-				case KEY_EVENT: // keyboard input
+				case KEY_EVENT:
 					if (irInBuf[i].Event.KeyEvent.bKeyDown)
 					{
-
-						udp_client_.send("KEY DOWN " + irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
+						std::stringstream ss;
+						ss << "KEY DOWN " << irInBuf[i].Event.KeyEvent.wVirtualKeyCode;
+						udp_client_.send(ss.str());
 					}
 					break;
 
-				case MOUSE_EVENT: // mouse input 이건 작동하지 않음
+				case MOUSE_EVENT:
 					MOUSE_EVENT_RECORD mer = irInBuf[i].Event.MouseEvent;
 #ifndef MOUSE_HWHEELED
 #define MOUSE_HWHEELED 0x0008
@@ -186,11 +194,9 @@ int main()
 			}
 		}
 		SetConsoleMode(hStdin, fdwSaveOldMode);
-
-#endif
 	}
-
-	context.run();
 #endif
+	context.run();
+
 	return 0;
 }

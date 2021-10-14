@@ -4,10 +4,11 @@
 #include "logger.hpp"
 
 namespace io = boost::asio;
-using udp = io::ip::udp;
+using udp = boost::asio::ip::udp;
 
 namespace ban
 {
+template<typename T>
 class udp_client
 {
 public:
@@ -17,9 +18,10 @@ public:
 		, unsigned short send_period)
 
 		: context_(context), socket_(context, udp::endpoint(udp::v4(), 0))
+		, strand_(context)
 		, timer_(context)
 		, send_period_(send_period)
-		, strand_(context)
+		
 	{
 		logger::log("[DEBUG] udp_client started");
 
@@ -27,37 +29,7 @@ public:
 		udp::resolver::query query(udp::v4(), address, port);
 		udp::resolver::iterator iter = resolver.resolve(query);
 		endpoint_ = *iter;
-#if 0
-		dummy = std::string("\
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n   \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\tHELLO THIS IS DUMMY\0\n\r\n\t \
-			HELLO THIS IS DUMMY\0\n\r\n\tHELLO \r\
-		");
-#endif
+
 		receive();
 		//update();
 	}
@@ -70,7 +42,8 @@ public:
 
 	void receive()
 	{
-		socket_.async_receive_from(io::buffer(recv_buffer_), endpoint_,
+		buffer_.clear();
+		socket_.async_receive_from(io::buffer(buffer_), endpoint_,
 			strand_.wrap([this](const boost::system::error_code& error, size_t bytes)->void
 			{
 				if (error)
@@ -80,17 +53,24 @@ public:
 				}
 				else
 				{
+					// TODO: deserialize the received packet
 					//logger::log("[DEBUG] udp_client recv data %d", recv_buffer_.size());
-					logger::log("[DEBUG] udp_client recv data %s", recv_buffer_.data());
+					logger::log("[DEBUG] udp_client recv %s [%d]", buffer_.data(), buffer_.size());
+					receive();
 				}
-				receive();
+
 			}));
 	}
 
-	void send(const std::string& msg)
+	void send(const T& msg)
 	{
-		logger::log("[DEBUG] send data: %d", msg.size());
-		socket_.async_send_to(io::buffer(msg.data(), msg.size()), endpoint_,
+		logger::log("[DEBUG] send data: %s [%d]", msg.c_str(), msg.size());
+		
+		// std::vector<char> buffer_;
+		buffer_.clear();
+		std::copy(msg.begin(), msg.end(), std::back_inserter(buffer_));
+
+		socket_.async_send_to(io::buffer(buffer_), endpoint_,
 			strand_.wrap([this](const boost::system::error_code& error, size_t bytes)->void
 			{
 				if (error)
@@ -100,7 +80,8 @@ public:
 				}
 				else
 				{
-					logger::log("[DEBUG] udp_client send success [sent bytes: %d]", std::to_string(bytes));
+					
+					logger::log("[DEBUG] udp_client send %s [sent bytes: %d]", buffer_.data(), std::to_string(bytes));
 					receive();
 				}
 			}));
@@ -129,10 +110,9 @@ private:
 	udp::socket socket_;
 	udp::endpoint endpoint_;
 
-	boost::array<char, 2048> recv_buffer_;
-	io::steady_timer timer_;
+	std::vector<char> buffer_;
 
+	io::steady_timer timer_;
 	unsigned short send_period_;
-	//std::string dummy;
 };
 }

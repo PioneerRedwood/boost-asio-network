@@ -5,12 +5,11 @@
 
 namespace io = boost::asio;
 using tcp = io::ip::tcp;
-
 namespace ban
 {
 template<typename T>
 class tcp_connection
-	: public boost::enable_shared_from_this<tcp_connection<T>>
+	: public std::enable_shared_from_this<tcp_connection<T>>
 	, boost::noncopyable
 {
 public:
@@ -51,6 +50,7 @@ public:
 protected:
 	virtual void on_message(const T& msg) {}
 
+	std::vector<char> read_buffer_;
 	void read()
 	{
 		if (!socket_.is_open())
@@ -58,7 +58,11 @@ protected:
 			logger::log("[ERROR] tcp_connection socket_ is not open");
 			return;
 		}
-#if 1
+#if 0
+		//logger::log("[BEFORE] streambuf.size(): %d", buffer_.size());
+		
+		buffer_.prepare(1024);
+
 		io::async_read_until(socket_, buffer_, '\n',
 			strand_.wrap(
 			[this, self = this->shared_from_this()](const err error, size_t bytes)->void
@@ -72,21 +76,25 @@ protected:
 					return;
 				}
 
+				std::stringstream ss;
+				
 				// 2021-10-10 문제 발생 지점
 				//logger::log("streambuf.size(): %d, bytes_transferred: %d", buffer_.size(), bytes);
+				//logger::log("[READING] streambuf.size(): %d", buffer_.size());
 				std::istream in(&buffer_);
 				T msg;
 				// read one line
 				std::getline(in, msg);
 
 				buffer_.consume(bytes);
+				//buffer_.commit(bytes);
+				//logger::log("[AFTER] streambuf.size(): %d, bytes_transferred: %d", buffer_.size(), bytes);
 				self->on_message(msg);
 			}));
 		
 #else
-
-		std::fill_n(read_buffer_, 1024, '\0');
-		io::async_read(socket_, io::buffer(read_buffer_, 1024),
+		read_buffer_.clear();
+		io::async_read_until(socket_, io::dynamic_buffer(read_buffer_, 1024), '\n',
 			strand_.wrap(
 			[this, self = this->shared_from_this()](const err error, size_t bytes)->void
 			{
@@ -101,7 +109,7 @@ protected:
 				// TODO: Deserialize the received packet data
 
 				//logger::log("[DEBUG] async_read vector data: %s", read_buffer_);
-				std::string msg(read_buffer_);
+				std::string msg(read_buffer_.begin(), read_buffer_.end());
 
 				self->on_message(msg);
 			}));
