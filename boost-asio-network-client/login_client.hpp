@@ -64,7 +64,8 @@ private:
 	{
 		// TODO: deserialize received packet
 
-		logger::log(msg.c_str());
+		std::cout << msg;
+
 		if (msg.find("ping ok") != std::string::npos)
 		{
 			//conn::write("ping");

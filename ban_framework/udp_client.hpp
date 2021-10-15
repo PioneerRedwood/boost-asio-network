@@ -54,8 +54,8 @@ public:
 				else
 				{
 					// TODO: deserialize the received packet
-					//logger::log("[DEBUG] udp_client recv data %d", recv_buffer_.size());
-					logger::log("[DEBUG] udp_client recv %s [%d]", buffer_.data(), buffer_.size());
+					std::cout << buffer_.data() << "\n";
+					//logger::log("[DEBUG] udp_client recv %s [%d]", std::string(buffer_.begin(), buffer_.begin() + bytes).c_str(), bytes);
 					receive();
 				}
 
@@ -64,7 +64,7 @@ public:
 
 	void send(const T& msg)
 	{
-		logger::log("[DEBUG] send data: %s [%d]", msg.c_str(), msg.size());
+		//logger::log("[DEBUG] send data: %s [%d]", msg.c_str(), msg.size());
 		
 		// std::vector<char> buffer_;
 		buffer_.clear();
@@ -81,7 +81,7 @@ public:
 				else
 				{
 					
-					logger::log("[DEBUG] udp_client send %s [sent bytes: %d]", buffer_.data(), std::to_string(bytes));
+					logger::log("[DEBUG] udp_client send %s [%d]", std::string(buffer_.begin(), buffer_.begin() + bytes).c_str(), bytes);
 					receive();
 				}
 			}));

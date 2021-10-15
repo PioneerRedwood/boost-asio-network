@@ -14,6 +14,7 @@
 #include <string>
 #include <memory>
 #include <type_traits>
+#include <functional>
 
 // boost libs
 #include <boost/asio.hpp>

@@ -123,12 +123,13 @@ private:
 			matching_started_ = true;
 			//owner_.matching_clients_.try_emplace(connection_id_, std::make_shared<login_conn<T>>(this));
 
-			logger::log(msg.c_str());
+			std::cout << msg;
 		}
 		else if (msg.find("matching accept") != std::string::npos)
 		{
+			// 2021-10-15
 			// 일단 매칭이 시작되면 TCP 연결 타임아웃 체크 주기를 늘림
-			set_timeout_period(UINT16_MAX); // 천만초-의미없는 수
+			set_timeout_period(UINT16_MAX); // 65535
 		}
 	}
 };

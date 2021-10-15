@@ -74,11 +74,13 @@ int main()
 	}
 	//thr.join();
 #endif
+
 	io::io_context context;
 	auth::login_client<std::string> login_client_(context);
-	login_client_.start("127.0.0.1", 9000, 3000);
+	login_client_.start("127.0.0.1", 9000, 100);
 
-#if 1
+	context.run();
+#if 0
 	udp_client<std::string> udp_client_(context, "127.0.0.1", "12190", 1);
 
 	if (!login_client_.matching_found_)
@@ -119,6 +121,10 @@ int main()
 				logger::log("[DEBUG] login_client disconnected exit");
 				break;
 			}
+			else
+			{
+				logger::log("[DEBUG] login_client connected");
+			}
 
 			if (!ReadConsoleInput(
 				hStdin,
@@ -140,7 +146,7 @@ int main()
 					if (irInBuf[i].Event.KeyEvent.bKeyDown)
 					{
 						std::stringstream ss;
-						ss << "KEY DOWN " << irInBuf[i].Event.KeyEvent.wVirtualKeyCode;
+						ss << "KEY DOWN " << std::to_string(irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
 						udp_client_.send(ss.str());
 					}
 					break;
@@ -196,7 +202,6 @@ int main()
 		SetConsoleMode(hStdin, fdwSaveOldMode);
 	}
 #endif
-	context.run();
 
 	return 0;
 }

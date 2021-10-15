@@ -28,9 +28,9 @@ int main()
 	try
 	{
 		mem::instance().add<unsigned short>("port", 9000);
-		mem::instance().add<unsigned short>("server update_rate", 7000);
+		mem::instance().add<unsigned short>("server update_rate", 4000);
 
-		mem::instance().add<bool>("login_server check_client 1", true);
+		mem::instance().add<bool>("login_server check_client 1", false);
 		mem::instance().add<bool>("login_server check_client 2", false);
 		mem::instance().add<bool>("login_server check_client 3", false);
 
@@ -46,7 +46,7 @@ int main()
 			logger::log("[DEBUG] login_server created port: %d, update_rate: %d", port, period);
 			login_server_.start();
 
-			udp_server<std::string> server(context, 1, 12190);
+			//udp_server<std::string> server(context, 1, 12190);
 
 			context.run();
 		}
