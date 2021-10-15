@@ -25,7 +25,7 @@ public:
 protected:
 	io::io_context& context_;
 	tcp::socket socket_;
-	io::streambuf buffer_;
+	io::streambuf read_buffer_;
 
 	status stat_;
 	io::io_context::strand strand_;
@@ -51,7 +51,6 @@ public:
 protected:
 	virtual void on_message(const T& msg) {}
 
-	std::vector<char> read_buffer_;
 	void read()
 	{
 		if (!socket_.is_open())
@@ -59,45 +58,9 @@ protected:
 			logger::log("[ERROR] tcp_connection socket_ is not open");
 			return;
 		}
-#if 0
-		//logger::log("[BEFORE] streambuf.size(): %d", buffer_.size());
-		
-		buffer_.prepare(1024);
 
-		io::async_read_until(socket_, buffer_, '\n',
-			strand_.wrap(
-			[this, self = this->shared_from_this()](const err error, size_t bytes)->void
-			{
-				if (!connected()) { return; }
-
-				if (error)
-				{
-					logger::log("[ERROR] tcp_connection async_read %s", error.message().c_str());
-					stat_ = status::disconnected;
-					return;
-				}
-
-				std::stringstream ss;
-				
-				// 2021-10-10 문제 발생 지점
-				//logger::log("streambuf.size(): %d, bytes_transferred: %d", buffer_.size(), bytes);
-				//logger::log("[READING] streambuf.size(): %d", buffer_.size());
-				std::istream in(&buffer_);
-				T msg;
-				// read one line
-				std::getline(in, msg);
-
-				buffer_.consume(bytes);
-				//buffer_.commit(bytes);
-				//logger::log("[AFTER] streambuf.size(): %d, bytes_transferred: %d", buffer_.size(), bytes);
-				self->on_message(msg);
-			}));
-		
-#else
-
-		io::async_read_until(socket_, buffer_, '\n',
-			strand_.wrap(
-			[this, self = this->shared_from_this(), buffer = std::ref(buffer_)](const err& error, size_t bytes)->void
+		io::async_read_until(socket_, read_buffer_, '\n',
+			strand_.wrap([this, self = this->shared_from_this(), buffer = std::ref(read_buffer_)](const err& error, size_t bytes)->void
 			{
 				if (!connected()) { return; }
 
@@ -109,29 +72,33 @@ protected:
 				}
 				// TODO: Deserialize the received packet data
 
-				//logger::log("[DEBUG] async_read vector data: %s", read_buffer_);
-
-				std::string msg(io::buffer_cast<const char*>(buffer.get().data()), bytes);
-				
 				// streambuf detail
+				//{
+				//	std::stringstream ss;
+				//	ss << "streambuf ";
+				//	ss << "size(): " << std::to_string(buffer.get().size());
+				//	ss << " max_size(): " << buffer.get().max_size();
+				//	ss << " capacity(): " << buffer.get().capacity();
+				//	ss << " end";
+				//	logger::log("[STREAMBUF] %s", ss.str().c_str());
+				//}
+
+				//assert(buffer.get().size() < bytes);
+
+				if (buffer.get().size() >= bytes)
 				{
-					std::stringstream ss;
-					ss << "streambuf ";
-					ss << "size(): " << std::to_string(buffer.get().size());
-					ss << " max_size(): " << buffer.get().max_size();
-					ss << " capacity(): " << buffer.get().capacity();
-					ss << " end";
-					logger::log("[STREAMBUF] %s", ss.str().c_str());
+					// 데이터 캐스트
+					std::string msg(io::buffer_cast<const char*>(buffer.get().data()), bytes - sizeof('\n'));
+
+					std::cout << msg << "\n";
+
+					// 데이터를 읽은 만큼 자르고 나머지는 다 날려버려야함
+					// Removes @c n characters from the beginning of the input sequence.
+					buffer.get().consume(buffer.get().size());
+
+					self->on_message(msg.substr(0, bytes));
 				}
-
-				std::cout << msg << " " << bytes << "\n";
-
-				buffer.get().consume(bytes);
-				// 데이터를 읽은 만큼 자르고 나머지는 다 날려버려야함
-				
-				self->on_message(msg.substr(0, bytes));
 			}));
-#endif
 	}
 
 	void write(const T& msg)
@@ -144,8 +111,7 @@ protected:
 		//logger::log("[DEBUG] async_write %s", msg.c_str());
 
 		socket_.async_write_some(io::buffer((msg + "\n").data(), msg.size() + 1),
-			strand_.wrap(
-			[self = this->shared_from_this()](const err& error, size_t bytes)->void
+			strand_.wrap([self = this->shared_from_this()](const err& error, size_t bytes)->void
 			{
 				if (error)
 				{

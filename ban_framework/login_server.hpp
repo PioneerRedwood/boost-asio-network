@@ -219,9 +219,7 @@ public:
 				{
 					logger::log("[ERROR] login_server update %s", error.message());
 					return;
-				}
-
-				
+				}				
 
 				// memdb에 설정된 것에 따라 적용
 				if (check_value_1)

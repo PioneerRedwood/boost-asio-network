@@ -64,7 +64,7 @@ private:
 	{
 		// TODO: deserialize received packet
 
-		std::cout << msg;
+		//std::cout << msg;
 
 		if (msg.find("ping ok") != std::string::npos)
 		{
@@ -73,7 +73,12 @@ private:
 		else if (msg.find("login ok") != std::string::npos)
 		{
 			conn::write("start matching");
+			
+			std::string substr_ = msg.substr(9, msg.size());
+			test_num_ = std::stoi(substr_);
+
 			owner_.logged_in_ = true;
+
 		}
 		else if (msg.find("matchmaking started") != std::string::npos)
 		{
@@ -102,7 +107,15 @@ private:
 				{
 					if (conn::connected())
 					{
-						conn::write("ping");
+						if (test_num_ != UINT16_MAX)
+						{
+							conn::write("ping " + std::to_string(test_num_));
+						}
+						else
+						{
+							conn::write("ping");
+						}
+
 						alive_ping();
 					}
 				}
@@ -113,6 +126,8 @@ private:
 	io::steady_timer timer_;
 	unsigned short timeout_;
 	client& owner_;
+
+	int test_num_ = UINT16_MAX;
 };
 
 template<typename T>
