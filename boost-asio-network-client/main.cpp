@@ -7,26 +7,23 @@ namespace io = boost::asio;
 using udp = boost::asio::ip::udp;
 
 #include <windows.h>
-
 int main()
 {
-#if 0
-	boost::asio::io_context context;
-	ban::login_client<std::string> c(context);
+#if 1
+	io::io_context context;
+	auth::login_client<std::string> client(context);
 	
-	if (c.start("127.0.0.1", 9000, 2000))
+	if (client.start("127.0.0.1", 9000, 5000))
 	{
 		std::cout << "client main login_client started .. \n";
 	}
 
-	//std::thread thr([&]() {context.run(); });
-	// 스레드 사용이 안전한지 모르겠다
 	bool bQuit = false;
 	std::vector<bool> key(5, false);
 	std::vector<bool> old_key(5, false);
 	try
 	{
-		while (!bQuit && c.ptr()->connected())
+		while (!bQuit && client.ptr()->connected())
 		{
 			if (GetForegroundWindow() == GetConsoleWindow())
 			{
@@ -39,15 +36,16 @@ int main()
 
 			if (key[0] && !old_key[0])
 			{
-				c.ptr()->send("login");
+				//client.ptr()->send("login");
+				client.try_login("localhost", "8081", "/signin/0/1234");
 			}
 			if (key[1] && !old_key[1])
 			{
-				c.ptr()->send("enter lobby");
+				client.ptr()->send("enter lobby");
 			}
 			if (key[2] && !old_key[2])
 			{
-				c.ptr()->send("start matching");
+				client.ptr()->send("start matching");
 			}
 			if (key[3] && !old_key[3])
 			{
@@ -57,7 +55,7 @@ int main()
 			{
 				//c.ptr()->send("disconnect");
 				std::cout << "disconnection key pressed\n";
-				c.stop();
+				client.stop();
 				bQuit = true;
 			}
 
@@ -66,21 +64,27 @@ int main()
 				old_key[i] = key[i];
 			}
 		}
-
 	}
 	catch (const std::exception& exception)
 	{
 		std::cerr << exception.what() << "\n";
 	}
-	//thr.join();
 #endif
+	
+	//io::io_context context;
+	//auth::login_client<std::string> login_client_(context);
+	//login_client_.start("127.0.0.1", 9000, 100);
 
+	//context.run();
+
+	
+#if 0
 	io::io_context context;
 	auth::login_client<std::string> login_client_(context);
 	login_client_.start("127.0.0.1", 9000, 100);
 
 	context.run();
-#if 0
+
 	udp_client<std::string> udp_client_(context, "127.0.0.1", "12190", 1);
 
 	if (!login_client_.matching_found_)

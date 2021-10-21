@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <algorithm>
 #include <type_traits>
 #include <functional>
 

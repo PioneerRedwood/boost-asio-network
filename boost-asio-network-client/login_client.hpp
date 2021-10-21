@@ -2,6 +2,9 @@
 #include "tcp_connection.hpp"
 #include "logger.hpp"
 
+#include "restapi_client.cpp"
+
+
 namespace io = boost::asio;
 using tcp = boost::asio::ip::tcp;
 
@@ -78,7 +81,6 @@ private:
 			test_num_ = std::stoi(substr_);
 
 			owner_.logged_in_ = true;
-
 		}
 		else if (msg.find("matchmaking started") != std::string::npos)
 		{
@@ -183,7 +185,19 @@ public:
 	bool logged_in_ = false;
 	bool matching_started_ = false;
 	bool matching_found_ = false;
-private:
+public:
+	// login ½Ãµµ
+	void try_login(std::string host, std::string port, std::string target)
+	{
+		restapi_client rest_client(context_, host, port);
+		std::unordered_map<std::string, std::string> result_map;
+		if (rest_client.get_account_info(target, result_map))
+		{
+			logged_in_ = true;
+		}
+		
+		std::cout << result_map["id"] << "\n";
+	}
 
 private:
 	io::io_context& context_;
