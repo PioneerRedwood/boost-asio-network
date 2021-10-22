@@ -18,25 +18,13 @@
     <ClInclude Include="logger.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="login_server.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="utility.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="tcp_connection.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="tsdeque.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="predef.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="packet.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="udp_connection.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="udp_server.hpp">
@@ -45,15 +33,15 @@
     <ClInclude Include="udp_client.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="network_manager.hpp">
+    <ClInclude Include="mem_db.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="mem_db.hpp">
+    <ClInclude Include="matching_server.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="matching_server_main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

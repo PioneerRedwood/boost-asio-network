@@ -1,3 +1,6 @@
+// 2021-10-22 
+// legacy - readonly
+
 #include "login_server.hpp"
 #include "lobby_server.hpp"
 #include "udp_server.hpp"
@@ -10,7 +13,7 @@ namespace io = boost::asio;
 using udp = boost::asio::ip::udp;
 
 using ushort = unsigned short;
-int main()
+int legacy_main()
 {
 #if 0
 	boost::asio::io_context context;

@@ -7,9 +7,9 @@ namespace io = boost::asio;
 using udp = boost::asio::ip::udp;
 
 #include <windows.h>
-int main()
+int legacy_client_main()
 {
-#if 1
+#if 0
 	io::io_context context;
 	auth::login_client<std::string> client(context);
 	

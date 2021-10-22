@@ -1,9 +1,11 @@
+// 2021-10-22
+// legacy - 
+
 #pragma once
 #include "tcp_connection.hpp"
 #include "logger.hpp"
 
 #include "restapi_client.cpp"
-
 
 namespace io = boost::asio;
 using tcp = boost::asio::ip::tcp;

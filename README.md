@@ -51,7 +51,15 @@ boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워�
 - boost-asio login/lobby server
   - MySQL, Redis
 
-## redis installed WSL2 Ubuntu 20.04
+## Setting WSL2 Ubuntu 20.04 on Desktop
+
+#### installed
+
+- redis
+- mysql - 재설치 필요
+- nodejs auth REST API server
+
+
 
 ## Architecture simple logic
 
@@ -63,3 +71,13 @@ boost::asio를 사용한 ~~게임~~ 네트워크 학습 겸 최종 프레임워�
 4. 매칭이 성공하면 1:1 배틀 서버 (UDP)에 입장한다.
 5. 배틀이 끝나면 로비로 다시 돌아온다.
 6. [3]에서 다시 시작
+
+
+
+## ban legacies
+
+기존의 개발에서 쓰였던 레거시를 청산한다.
+
+#### 1차 ~ 2021-10-06
+
+#### 2차 ~ 2021-10-22
