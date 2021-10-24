@@ -13,7 +13,8 @@ enum class client_status
 	IDLE,
 	LOGGED_IN,
 	MATCHING_STARTED,
-	MATCHING_FOUND
+	MATCHING_FOUND,
+	READY_BATTLE,
 };
 
 class pt_client
@@ -35,6 +36,7 @@ class pt_client
 				{
 					if (error)
 					{
+						logger::log("[DEBUG] error connect to server");
 						is_connected_ = false;
 						stop();
 					}
@@ -42,7 +44,7 @@ class pt_client
 					{
 						logger::log("[DEBUG] connect to server");
 						is_connected_ = true;
-						write("matching start");
+						//write("matching start");
 						ping();
 					}
 				});
@@ -81,13 +83,14 @@ class pt_client
 			{
 				logger::log("[DEBUG] %s", msg.c_str());
 				client_.set_status(client_status::MATCHING_FOUND);
-				write("accept matching");
+				//write("accept matching");
 			}
-			else if (msg.find("press any key to join the battle") != std::string::npos)
+			else if (msg.find("press any key, join battle") != std::string::npos)
 			{
 				// 서버에서 세션을 만들어두었으니 입장하면 됨
 				// 여기서 세션에 대한 정보를 msg로부터 파싱하면 될듯..
 				logger::log("[DEBUG] %s", msg.c_str());
+				client_.set_status(client_status::READY_BATTLE);
 			}
 		}
 
@@ -212,12 +215,86 @@ public:
 
 			conn_->start(tcp::endpoint(io::ip::make_address(address), port));
 
-			//keep_alive();
 			thr = std::thread([this]() { context_.run(); });
+
+			thr2 = std::thread([this]()
+				{
+					bool bQuit = false;
+					std::vector<bool> key(5, false);
+					std::vector<bool> old_key(5, false);
+
+					//while (!bQuit && conn_->connected())
+					while (!bQuit)
+					{
+						if (GetForegroundWindow() == GetConsoleWindow())
+						{
+							key[0] = GetAsyncKeyState('1') & 0x8000;
+							key[1] = GetAsyncKeyState('2') & 0x8000;
+							key[2] = GetAsyncKeyState('3') & 0x8000;
+							key[3] = GetAsyncKeyState('4') & 0x8000;
+							key[4] = GetAsyncKeyState(VK_ESCAPE) & 0x8000;
+						}
+
+						if (key[0] && !old_key[0])
+						{
+							if (get_status() == ban::prototype::client_status::LOGGED_IN)
+							{
+								ban::logger::log("[DEBUG] You are already logged in");
+							}
+							else
+							{
+								ban::logger::log("[DEBUG] KEY #1 PRESSED - trying to login");
+								try_login("localhost", "8081", "/signin/0/1234");
+							}
+						}
+						if (key[1] && !old_key[1])
+						{
+							ban::logger::log("[DEBUG] KEY #2 PRESSED - send msg \"matching start\"");
+							if (get_status() == ban::prototype::client_status::LOGGED_IN)
+							{
+								ptr()->send("matching start");
+							}
+							else
+							{
+								ban::logger::log("[DEBUG] You must login in server first");
+							}
+
+						}
+						if (key[2] && !old_key[2])
+						{
+							if (get_status() == ban::prototype::client_status::MATCHING_FOUND)
+							{
+								ban::logger::log("[DEBUG] KEY #3 PRESSED - send msg \"accept matching\"");
+								ptr()->send("matching accept");
+							}
+							else
+							{
+								ban::logger::log("[DEBUG] matching is not found");
+							}
+						}
+						if (key[3] && !old_key[3])
+						{
+							ban::logger::log("[DEBUG] KEY #4 PRESSED - send msg \" nothing \"");
+
+						}
+						if (key[4] && !old_key[4])
+						{
+							ban::logger::log("[DEBUG] KEY #5 PRESSED - send msg \"disconnect\"");
+							stop();
+							bQuit = true;
+						}
+
+						for (size_t i = 0; i < key.size(); ++i)
+						{
+							old_key[i] = key[i];
+						}
+					}
+				});
+			thr2.detach();
 		}
 		catch (const std::exception& e)
 		{
-			logger::log("[DEBUG] starting login_client ", e.what());
+			logger::log("[DEBUG] error input client", e.what());
 			return false;
 		}
 
@@ -232,6 +309,11 @@ public:
 			thr.join();
 		}
 
+		if (thr2.joinable())
+		{
+			thr2.join();
+		}
+
 		context_.stop();
 		logger::log("[DEBUG] connection is stopped");
 	}
@@ -241,10 +323,6 @@ public:
 	void set_status(client_status stat) { stat_ = stat; }
 	client_status get_status() { return stat_; }
 
-	// 일단은 public으로 나중에 어떻게 할지 생각
-	bool logged_in_ = false;
-	bool matching_started_ = false;
-	bool matching_found_ = false;
 public:
 	// login 시도
 	void try_login(std::string host, std::string port, std::string target)
@@ -253,7 +331,6 @@ public:
 		std::unordered_map<std::string, std::string> result_map;
 		if (rest_client.get_account_info(target, result_map))
 		{
-			logged_in_ = true;
 			stat_ = client_status::LOGGED_IN;
 		}
 
@@ -327,5 +404,6 @@ private:
 	client_status stat_ = client_status::IDLE;
 
 	std::thread thr;
+	std::thread thr2;
 };
 } // ban::prototype

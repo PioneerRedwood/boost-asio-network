@@ -9,6 +9,7 @@ namespace ban::prototype {
 enum class matching_session_status
 {
 	IDLE,
+	LOGGED_IN,
 	MATCHING_STARTED,
 	MATCHING_ACCEPTED,
 	IN_REAL_SERVER,
@@ -66,7 +67,7 @@ class matching_server
 				if (deque_.size() < 4)
 				{
 					write("matching started");
-					//deque_.push_back(shared_from_this());
+					deque_.push_back(shared_from_this());
 					stat_ = matching_session_status::MATCHING_STARTED;
 				}
 				else
@@ -78,8 +79,11 @@ class matching_server
 			{
 				logger::log("[DEBUG] %s", msg.c_str());
 				stat_ = matching_session_status::MATCHING_ACCEPTED;
+				//write("press any key");
 				// 서버에 두개의 클라이언트가 모두 준비가 완료됐음을 알린다.
 				// 서버에서는 두 클라이언트의 매칭 수락 메시지를 확인하고 배틀 서버를 동적으로 생성한다
+				// 서버 생성 
+				// - 타이머로 생성이 완료되면 클라언트에 생성 완료됐으니 아무키나 입력하라는 걸 보낸다.
 			}
 			else if (msg.find("any key") != std::string::npos)
 			{
@@ -94,17 +98,19 @@ class matching_server
 			if (!socket_.is_open())
 			{
 				logger::log("[ERROR] socket_ is not open");
+				is_connected_ = false;
 				return;
 			}
 
 			io::async_read_until(socket_, buffer_, '\n',
 				strand_.wrap([this, self = this->shared_from_this(), buffer = std::ref(buffer_)](const boost::system::error_code& error, size_t bytes)->void
 			{
-				if (!connected()) { return; }
+				if (!connected()) { is_connected_ = false; return; }
 
 				if (error)
 				{
 					logger::log("[ERROR] async_read %s", error.message().c_str());
+					is_connected_ = false;
 					return;
 				}
 
@@ -126,16 +132,18 @@ class matching_server
 			if (!connected())
 			{
 				logger::log("[ERROR] write() but not started");
+				is_connected_ = false;
 				return;
 			}
 
 			socket_.async_write_some(io::buffer((msg + "\n").data(), msg.size() + 1),
-				strand_.wrap([self = this->shared_from_this()](const boost::system::error_code& error, size_t bytes)->void
+				strand_.wrap([this, self = this->shared_from_this()](const boost::system::error_code& error, size_t bytes)->void
 			{
 				if (error)
 				{
 					logger::log("[ERROR] async_write %s", error.message().c_str());
 					self->stop();
+					is_connected_ = false;
 					return;
 				}
 				else
@@ -153,7 +161,7 @@ class matching_server
 
 		std::deque<std::shared_ptr<matching_session>>& deque_;
 		bool is_connected_ = false;
-		matching_session_status stat_ = matching_session_status::IDLE;
+		matching_session_status stat_ = matching_session_status::LOGGED_IN;
 	};
 public:
 	matching_server(io::io_context& context, io::ip::port_type port, unsigned short period)
@@ -253,15 +261,25 @@ private:
 						*/
 
 						
+						std::vector<size_t> deletions;
 						std::stringstream ss;
 						ss << "[DEBUG] clients [ ";
 						for (auto iter = sessions_.begin(); iter != sessions_.end(); ++iter)
 						{
+							if (!iter->second->connected())
+							{
+								deletions.push_back(iter->first);
+								continue;
+							}
+
 							ss << iter->first << ": ";
 							switch (auto stat_ = iter->second->get_stat())
 							{
 							case matching_session_status::IDLE:
 								ss << "stat::IDLE ";
+								break;
+							case matching_session_status::LOGGED_IN:
+								ss << "stat::LOGGED_IN ";
 								break;
 							case matching_session_status::MATCHING_STARTED:
 								ss << "stat::MATCHING_STARTED ";
@@ -279,10 +297,13 @@ private:
 						ss << "]";
 						std::cout << ss.str() << "\n";
 
-
+						for (auto iter : deletions)
+						{
+							sessions_.erase(iter);
+						}
 
 						// 여기에 매칭 알고리즘을 넣어야 .. 일단은 2개 이상 들어올 경우 매칭 활성화 메시지를 보낸다..
-						/*
+						
 						if (matching_deque_.size() > 0 && matching_deque_.size() % 2 == 0)
 						{
 							// 뒤에 있는 두놈을 빼고
@@ -292,10 +313,13 @@ private:
 							{
 								auto back = matching_deque_.back();
 								back->send("matching found");
-								matching_deque_.push_front(back);
+								//matching_deque_.push_front(back);
+								matching_deque_.pop_back();
 							}
 						}
-						*/
+						
+
+						
 
 						matchmaking();
 					}
@@ -320,10 +344,7 @@ private:
 
 	size_t max_matching_deque_size = 4;
 	std::unordered_map<size_t, std::shared_ptr<matching_session>> sessions_;
-
-	std::deque<std::shared_ptr<matching_session>> in_lobby_deque_;
 	std::deque<std::shared_ptr<matching_session>> matching_deque_;
-	// 매칭을 추적하기 위한 적절한 자료구조가 무엇일까?
 };
 
 } // ban::prototype
