@@ -13,7 +13,8 @@ private:
 	udp::socket socket_;
 	udp::endpoint endpoint_;
 
-	std::vector<char> buffer_;
+	// 2021-10-26 수정하긴 했는데 버퍼 오버플로우가 나진 않겠지..?
+	std::array<char, 1024> buffer_;
 public:
 	simple_udp_server(io::io_context& context, unsigned short port)
 		: context_(context), socket_(context, udp::endpoint(udp::v4(), port))
@@ -25,8 +26,10 @@ public:
 private:
 	void send(const std::string& msg)
 	{
-		buffer_.clear();
-		std::copy(msg.begin(), msg.end(), std::back_inserter(buffer_));
+		//buffer_.clear();
+
+		//std::copy(msg.begin(), msg.end(), std::back_inserter(buffer_));
+		//std::cout << buffer_.size();
 
 		socket_.async_send_to(io::buffer(buffer_, msg.size()), endpoint_,
 			[this, msg](const boost::system::error_code& error, std::size_t bytes)->void
@@ -38,7 +41,8 @@ private:
 				}
 				else
 				{
-					logger::log("[DEBUG] udp_server sent %s [%d]", std::string(buffer_.begin(), buffer_.begin() + bytes), bytes);
+					//std::cout << "sent " << std::string(buffer_.begin(), buffer_.begin() + bytes) << " size: " << bytes << "\n";
+					logger::log("[DEBUG] udp_server sent %s [%d]", std::string(buffer_.begin(), buffer_.begin() + bytes).c_str(), bytes);
 					receive();
 				}
 			});
@@ -46,7 +50,9 @@ private:
 
 	void receive()
 	{
-		buffer_.clear();
+		//buffer_.clear();
+		//std::cout << buffer_.size();
+
 		socket_.async_receive_from(io::buffer(buffer_), endpoint_,
 			[this](const boost::system::error_code& error, std::size_t bytes)->void
 			{
@@ -56,7 +62,7 @@ private:
 				}
 				else
 				{
-					logger::log("[DEBUG] udp_server recv msg %s [%d]", std::string(buffer_.begin(), buffer_.begin() + bytes), bytes);
+					logger::log("[DEBUG] udp_server recv msg %s [%d]", std::string(buffer_.begin(), buffer_.begin() + bytes).c_str(), bytes);
 
 					//receive();
 					send("Hello");
