@@ -19,6 +19,7 @@ public:
 		: context_(context), socket_(context, udp::endpoint(udp::v4(), port))
 	{
 		logger::log("[DEBUG] udp_server started");
+		endpoint_ = udp::endpoint(io::ip::address_v4::from_string("127.0.0.1"), port);
 		receive();
 	}
 private:
@@ -57,7 +58,7 @@ private:
 				{
 					logger::log("[DEBUG] udp_server recv msg %s [%d]", std::string(buffer_.begin(), buffer_.begin() + bytes), bytes);
 
-					receive();
+					//receive();
 					send("Hello");
 				}
 			});
@@ -67,9 +68,9 @@ private:
 int main()
 {
 	io::io_context context;
-	//simple_udp_server server(context, 12190);
-	ban::prototype::matching_server server(context, 9000, 4000);
-	server.start();
+	simple_udp_server server(context, 12190);
+	//ban::prototype::matching_server server(context, 9000, 4000);
+	//server.start();
 
 	context.run();
 

@@ -7,4 +7,4 @@ build_property.PublishSingleFile =
 build_property.IncludeAllContentForSelfExtract = 
 build_property._SupportedPlatformList = Android,iOS,Linux,macOS,Windows
 build_property.RootNamespace = DotNet5.0
-build_property.ProjectDir = C:\Users\NICE신용정보\source\repos\boost-asio-network\unity-network\DotNet5.0\
+build_property.ProjectDir = C:\Users\NICE신용정보\source\repos\boost-asio-network\unity-network\RedNetwork\

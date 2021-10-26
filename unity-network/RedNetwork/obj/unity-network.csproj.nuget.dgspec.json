@@ -1,25 +1,31 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\DotNet5.0\\unity-network.csproj": {}
+    "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\RedNetwork\\unity-network.csproj": {}
   },
   "projects": {
-    "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\DotNet5.0\\unity-network.csproj": {
+    "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\RedNetwork\\unity-network.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\DotNet5.0\\unity-network.csproj",
+        "projectUniqueName": "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\RedNetwork\\unity-network.csproj",
         "projectName": "unity-network",
-        "projectPath": "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\DotNet5.0\\unity-network.csproj",
+        "projectPath": "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\RedNetwork\\unity-network.csproj",
         "packagesPath": "C:\\Users\\NICE신용정보\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\DotNet5.0\\obj\\",
+        "outputPath": "C:\\Users\\NICE신용정보\\source\\repos\\boost-asio-network\\unity-network\\RedNetwork\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\NICE신용정보\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\NICE신용정보\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net5.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
