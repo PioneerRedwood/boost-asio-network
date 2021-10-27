@@ -17,13 +17,13 @@ enum class client_status
 	READY_BATTLE,
 };
 
-class pt_client
+class matching_client
 {
 	class session :
 		public std::enable_shared_from_this<session>, boost::noncopyable
 	{
 	public:
-		session(pt_client& owner, io::io_context& context, unsigned short timeout)
+		session(matching_client& owner, io::io_context& context, unsigned short timeout)
 			: client_(owner), context_(context), socket_(context), timer_(context), timeout_(timeout), strand_(context)
 		{}
 
@@ -63,7 +63,7 @@ class pt_client
 
 		void on_message(const std::string& msg)
 		{
-			//std::cout << msg << "\n";
+			std::cout << msg << "\n";
 
 			// 여기서 메시지들은 string 형식이지만 다들 정해진 프로토콜에 의해 다음 순서가 정해지는 방식이다.
 			// 1. matching started					-> 클라이언트 상태를 '매칭 시작'으로 변경한다.
@@ -72,16 +72,16 @@ class pt_client
 			// 4. press any key to join the battle	-> 아무 키나 누르면 배틀로 입장.
 			if (msg.find("matching started") != std::string::npos)
 			{
-				logger::log("[DEBUG] %s", msg.c_str());
+				//logger::log("[DEBUG] %s", msg.c_str());
 				client_.set_status(client_status::MATCHING_STARTED);
 			}
 			else if (msg.find("matching refused") != std::string::npos)
 			{
-				logger::log("[DEBUG] %s", msg.c_str());
+				//logger::log("[DEBUG] %s", msg.c_str());
 			}
 			else if (msg.find("matching found") != std::string::npos)
 			{
-				logger::log("[DEBUG] %s", msg.c_str());
+				//logger::log("[DEBUG] %s", msg.c_str());
 				client_.set_status(client_status::MATCHING_FOUND);
 				//write("accept matching");
 			}
@@ -89,7 +89,7 @@ class pt_client
 			{
 				// 서버에서 세션을 만들어두었으니 입장하면 됨
 				// 여기서 세션에 대한 정보를 msg로부터 파싱하면 될듯..
-				logger::log("[DEBUG] %s", msg.c_str());
+				//logger::log("[DEBUG] %s", msg.c_str());
 				client_.set_status(client_status::READY_BATTLE);
 			}
 		}
@@ -188,7 +188,7 @@ class pt_client
 
 		io::steady_timer timer_;
 		unsigned short timeout_;
-		pt_client& client_;
+		matching_client& client_;
 
 		bool is_connected_ = false;
 		// 연결이 끊겨 카운트를 둬서 timeout_(밀리초) * max_error_count_가 초과되면 stop
@@ -196,14 +196,14 @@ class pt_client
 	};
 
 public:
-	pt_client(io::io_context& context)
+	matching_client(io::io_context& context)
 		: context_(context), timer_(context)
 	{
 		// 시작하자마자 살아있게 유지
 		keep_alive();
 	}
 
-	~pt_client() { stop(); }
+	~matching_client() { stop(); }
 
 	bool start(const std::string& address, io::ip::port_type port, unsigned short timeout)
 	{

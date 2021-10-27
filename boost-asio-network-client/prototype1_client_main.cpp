@@ -8,10 +8,10 @@ int main()
 
 	boost::asio::steady_timer timer(context);
 
-	ban::logger::log("[DEBUG] trying to login");
-	client.try_login("localhost", "8081", "/signin/0/1234");
+	//ban::logger::log("[DEBUG] trying to login");
+	//client.try_login("localhost", "8081", "/signin/0/1234");
 
-	client.start("127.0.0.1", 12000, 4000);
+	client.start("127.0.0.1", 9000, 4000);
 	
 	return 0;
 }

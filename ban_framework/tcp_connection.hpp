@@ -4,8 +4,8 @@
 
 namespace io = boost::asio;
 using tcp = io::ip::tcp;
-namespace ban
-{
+
+namespace ban{
 template<typename T>
 class tcp_connection
 	: public std::enable_shared_from_this<tcp_connection<T>>
@@ -14,7 +14,7 @@ class tcp_connection
 public:
 	using err = boost::system::error_code;
 
-	enum class status
+	enum class network_status
 	{
 		connected,
 		disconnected,
@@ -25,22 +25,22 @@ protected:
 	tcp::socket socket_;
 	io::streambuf read_buffer_;
 
-	status stat_;
+	network_status stat_;
 	io::io_context::strand strand_;
 public:
 	tcp_connection(io::io_context& context, tcp::socket socket)
 		: context_(context), socket_(std::move(socket)), strand_(context)
 	{
-		stat_ = status::disconnected;
+		stat_ = network_status::disconnected;
 	}
 
-	bool connected() const { return stat_ == status::connected ? true : false; }
+	bool connected() const { return stat_ == network_status::connected ? true : false; }
 
 	tcp::socket& socket() { return socket_; }
 
 	void stop()
 	{
-		stat_ = status::disconnected;
+		stat_ = network_status::disconnected;
 		socket_.close();
 	}
 
@@ -65,7 +65,7 @@ protected:
 				if (error)
 				{
 					logger::log("[ERROR] tcp_connection async_read %s", error.message().c_str());
-					stat_ = status::disconnected;
+					stat_ = network_status::disconnected;
 					return;
 				}
 
