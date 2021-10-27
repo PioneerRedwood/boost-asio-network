@@ -41,8 +41,7 @@ namespace RedNetwork
                     {
                         Console.WriteLine(e);
                     }
-                }),
-                state);
+                }), state);
 
             client.BeginReceive(new AsyncCallback(
                 (IAsyncResult ar) =>
@@ -51,6 +50,7 @@ namespace RedNetwork
                     {
                         UdpClient c = ((UdpState)(ar.AsyncState)).client;
                         IPEndPoint e = ((UdpState)(ar.AsyncState)).endpoint;
+
                         byte[] recvByte = c.EndReceive(ar, ref e);
                         string recvStr = Encoding.Default.GetString(recvByte);
 
@@ -61,8 +61,7 @@ namespace RedNetwork
                     {
                         Console.WriteLine(e);
                     }
-                }),
-                state);
+                }), state);
         }
     }
 }
