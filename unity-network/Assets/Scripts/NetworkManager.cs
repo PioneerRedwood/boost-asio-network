@@ -3,13 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.Collections.Concurrent;
 
 public class NetworkManager : MonoBehaviour
 {
     [SerializeField]
     private Dictionary<string, string> userInfo = new Dictionary<string, string>();
 
-    public string GetUserInfo(string key)
+    RedNetwork.LobbyClient lobbyClient;
+
+    ConcurrentQueue<string> queue = new ConcurrentQueue<string>();
+
+	public string GetUserInfo(string key)
 	{
         return userInfo[key];
 	}
@@ -31,13 +36,25 @@ public class NetworkManager : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
     {
-
+        InitLobbyClient();
     }
 
     // Update is called once per frame
     void Update()
     {
         
+    }
+
+    private void InitLobbyClient()
+	{
+        lobbyClient = new RedNetwork.LobbyClient(ref queue);
+        lobbyClient.Connect("127.0.0.1", 9000);
+
+        if (!IsInvoking(nameof(CheckMessageFromServer)))
+        {
+            InvokeRepeating(nameof(CheckMessageFromServer), 3.0f, 0.5f);
+        }
+
     }
 
     public void OnLoginButtonClicked()
@@ -59,11 +76,13 @@ public class NetworkManager : MonoBehaviour
             try
             {
                 // here, we need to activate[Instantiate/Create/Spawn ... ] our network client instance
-                // Unity는 스레드가 안된다? -- 이에 대해 다시 찾아봐야 함
                 GameObject.Find("IDText").GetComponent<Text>().text = userInfo["id"];
-                RedNetwork.LobbyClient lobbyClient = new RedNetwork.LobbyClient();
+
+                lobbyClient = new RedNetwork.LobbyClient(ref queue);
                 lobbyClient.Connect("127.0.0.1", 9000);
+
                 InvokeRepeating(nameof(lobbyClient.PingToServer), 3.0f, 1.0f);
+                InvokeRepeating(nameof(CheckMessageFromServer), 3.0f, 0.5f);
             }
             catch (Exception e)
             {
@@ -71,4 +90,34 @@ public class NetworkManager : MonoBehaviour
             }
         }
     }
+
+    void CheckMessageFromServer()
+	{
+		if (queue.TryDequeue(out string result))
+		{
+			Debug.Log(result);
+		}
+	}
+
+    public void OnRefreshButtonClicked()
+	{
+        if (lobbyClient.Connected())
+        {
+            lobbyClient.Send("clients");
+        }
+		else
+		{
+            Debug.Log("Not connected..");
+		}
+	}
+
+    // for debugging, set id 0
+    private string id = "0";
+    public void OnJoinLobbyButtonClicked()
+	{
+        if(lobbyClient.Connected())
+		{
+            lobbyClient.Send("enter room");
+		}
+	}
 }

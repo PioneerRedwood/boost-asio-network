@@ -36,7 +36,7 @@ public:
 		{
 			// lobby info
 			int lobby_idx_ = -1;
-			std::vector<int> teams_;
+			//std::vector<int> teams_;
 			std::string lobby_name_;
 		};
 
@@ -73,7 +73,11 @@ public:
 			socket_.close(); 
 
 			server_.get_clients().erase(id_);
-			server_.get_lobby_manager().get_lobby(info_.lobby_idx_)->remove(id_);
+			auto lobby = server_.get_lobby_manager().get_lobby(info_.lobby_idx_);
+			if (lobby != nullptr)
+			{
+				lobby->remove(id_);
+			}
 		}
 
 		void send(const std::string& msg)
@@ -113,8 +117,11 @@ public:
 
 				//add(std::string user_id, int session_id)
 
-				if (server_.lobby_manager_.get_lobby(std::stoi(room_num))->add(id, std::stoi(room_num)))
+				auto lobby = server_.lobby_manager_.get_lobby(std::stoi(room_num));
+				if (lobby != nullptr)
 				{
+					lobby->add(id, std::stoi(room_num));
+
 					// Give lobby info to client
 					info_.lobby_idx_ = std::stoi(room_num);
 					write("entering " + room_num + " success");

@@ -117,7 +117,17 @@ public:
 
 	std::vector<std::shared_ptr<lobby>> get_lobby_list() { return lobby_list_; }
 
-	std::shared_ptr<lobby> get_lobby(size_t idx) { return lobby_list_[idx]; }
+	std::shared_ptr<lobby> get_lobby(size_t idx) 
+	{
+		if (idx < lobby_list_.size())
+		{
+			return lobby_list_[idx];
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
 
 	std::string get_lobby_string()
 	{
@@ -128,12 +138,12 @@ public:
 		for (auto iter : lobby_list_)
 		{
 			ss << "[lobby #" << iter->get_index() << ", " << iter->get_name() << ", " << iter->size() << "/" << iter->get_max_count() << "] ";
-			if (idx++ != lobby_list_.size())
+			/*if (idx++ != lobby_list_.size())
 			{
 				ss << "\n";
-			}
+			}*/
 		}
-		//ss << "]";
+		ss << "\n";
 
 		return ss.str();
 	}

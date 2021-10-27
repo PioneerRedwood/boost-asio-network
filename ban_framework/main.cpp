@@ -15,7 +15,6 @@ int main()
 	//ban::prototype::matching_server server(context, 9000, 4000);
 	ban::prototype::lobby_server server(context, 9000, 1000);
 
-
 	server.start();
 	context.run();
 

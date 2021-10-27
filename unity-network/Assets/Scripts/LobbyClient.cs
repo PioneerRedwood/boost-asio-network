@@ -4,18 +4,28 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using UnityEngine;
-
+using System.Collections.Concurrent;
 
 // 2021-10-25 유니티에서 Debug.Log가 안찍힘
 namespace RedNetwork
 {
 	class LobbyClient
 	{
+		public LobbyClient(ref ConcurrentQueue<string> queue)
+		{
+			this.queue = queue;
+		}
+
 		Socket client  = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+		ConcurrentQueue<string> queue;
 		const int BufferSize = 256;
 		byte[] buffer = new byte[BufferSize];
 		bool isStarted = false;
 
+		public bool Connected()
+		{
+			return client.Connected;
+		}
 		// 연결 시도
 		public bool Connect(string address, int port)
 		{
@@ -90,6 +100,8 @@ namespace RedNetwork
 			if (bytesRead > 0)
 			{
 				Console.Write(Encoding.Default.GetString(buffer, 0, bytesRead));
+
+				queue.Enqueue(Encoding.Default.GetString(buffer, 0, bytesRead));
 
 				client.BeginReceive(buffer, 0, BufferSize, SocketFlags.None, ReceiveCallback, client);
 			}
