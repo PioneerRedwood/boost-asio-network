@@ -41,7 +41,7 @@ namespace RedNetwork
 							client.EndConnect(ar);
 							if (client.Connected)
 							{
-								Debug.Log("Connected");
+								Debug.Log("Connected, start receiving");
 								result = true;
 								isStarted = true;
 								Receive();
@@ -99,8 +99,9 @@ namespace RedNetwork
 			int bytesRead = client.EndReceive(ar);
 			if (bytesRead > 0)
 			{
-				Console.Write(Encoding.Default.GetString(buffer, 0, bytesRead));
-
+				//Debug.Log(Encoding.Default.GetString(buffer, 0, bytesRead));
+				
+				// Notification to NetworkManager to handle the message
 				queue.Enqueue(Encoding.Default.GetString(buffer, 0, bytesRead));
 
 				client.BeginReceive(buffer, 0, BufferSize, SocketFlags.None, ReceiveCallback, client);

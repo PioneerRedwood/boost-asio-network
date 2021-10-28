@@ -33,13 +33,11 @@ public class NetworkManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 	}
 
-	// Start is called before the first frame update
 	void Start()
     {
-        InitLobbyClient();
-    }
+		InitLobbyClient();
+	}
 
-    // Update is called once per frame
     void Update()
     {
         
@@ -96,6 +94,14 @@ public class NetworkManager : MonoBehaviour
 		if (queue.TryDequeue(out string result))
 		{
 			Debug.Log(result);
+			// 정보 가져오기
+			if (result.Contains("lobby"))
+            {
+                if (LobbyUIManager.Instance.CreateLobbies(result))
+				{
+                    LobbyUIManager.Instance.InitUI();
+				}
+			}
 		}
 	}
 
@@ -112,7 +118,7 @@ public class NetworkManager : MonoBehaviour
 	}
 
     // for debugging, set id 0
-    private string id = "0";
+    //private string id = "0";
     public void OnJoinLobbyButtonClicked()
 	{
         if(lobbyClient.Connected())

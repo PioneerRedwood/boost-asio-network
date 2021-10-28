@@ -34,6 +34,7 @@ public:
 		idx_ = idx;
 		num_ = num;
 		max_count_ = max_count;
+		name_ = "Lobby#" + std::to_string(idx_);
 	}
 
 	int get_index() { return idx_; }
@@ -133,11 +134,11 @@ public:
 	{
 		std::stringstream ss;
 
-		//ss << "lobby list [ ";
+		ss << "lobby|";
 		int idx = 0;
 		for (auto iter : lobby_list_)
 		{
-			ss << "[lobby #" << iter->get_index() << ", " << iter->get_name() << ", " << iter->size() << "/" << iter->get_max_count() << "] ";
+			ss << iter->get_index() << "," << iter->get_name() << "," << iter->size() << "," << iter->get_max_count() << "|";
 			/*if (idx++ != lobby_list_.size())
 			{
 				ss << "\n";

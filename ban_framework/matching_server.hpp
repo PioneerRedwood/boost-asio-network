@@ -93,7 +93,7 @@ class matching_server
 			}
 			else if (msg.find("any key") != std::string::npos)
 			{
-				// 서버에서 배틀 서버 세션이 모두 생성 됐으면 
+				// 서버에서 배틀 서버 세션이 모두 생성 됐으면
 				// 입장 시킨다..!
 				stat_ = session_status::IN_REAL_SERVER;
 			}
