@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class LobbyObjcet : MonoBehaviour
+public class LobbyObject : MonoBehaviour
 {
     /*
      * ·Îºñ ÇÁ¸®ÆÕ
@@ -19,11 +19,7 @@ public class LobbyObjcet : MonoBehaviour
     private Text lobbyName;
 
     [SerializeField]
-    private Text currentCount;
-
-    [SerializeField]
-    private Text maxCount;
-
+    private Text userCount;
 
 	private void Start()
 	{
@@ -33,5 +29,12 @@ public class LobbyObjcet : MonoBehaviour
 	private void Update()
 	{
 		
+	}
+
+    public void SetData(string index_, string lobbyName_, string userCount_)
+	{
+        index.text = index_;
+        lobbyName.text = lobbyName_;
+        userCount.text = userCount_;
 	}
 }

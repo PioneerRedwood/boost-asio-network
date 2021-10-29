@@ -9,6 +9,7 @@
 #include "predef.hpp"
 #include "logger.hpp"
 #include "lobby.hpp"
+#include "packet.hpp"
 
 namespace io = boost::asio;
 using tcp = io::ip::tcp;
@@ -95,7 +96,7 @@ public:
 			return info_;
 		}
 	private:
-
+		//packet pack;
 		void on_message(const std::string& msg)
 		{
 			// 여기서 받은 메시지의 헤더를 골라내서 DISPATCHING
@@ -103,6 +104,27 @@ public:
 			//std::cout << msg << "\n";
 			if (msg.find("ping") != std::string::npos)
 			{
+				//std::cout << msg << "\n";
+				/*
+				size_t idx = 0;
+				packet pack;
+
+				bool			b = (bool)msg[idx]; idx += sizeof(bool);
+				float			f = (float)msg[idx]; idx += sizeof(float);
+				double			d = (double)msg[idx]; idx += sizeof(double);
+
+				int8_t			i8 = (int8_t)msg[idx]; idx += sizeof(int8_t);
+				int16_t			i16 = (int16_t)msg[idx]; idx += sizeof(int16_t);
+				int32_t			i32 = (int32_t)msg[idx]; idx += sizeof(int32_t);
+				int64_t			i64 = (int64_t)msg[idx]; idx += sizeof(int64_t);
+
+				uint8_t			ui8 = (uint8_t)msg[idx]; idx += sizeof(uint8_t);
+				uint16_t		ui16 = (uint16_t)msg[idx]; idx += sizeof(uint16_t);
+				uint32_t		ui32 = (uint32_t)msg[idx]; idx += sizeof(uint32_t);
+				uint64_t		ui64 = (uint64_t)msg[idx]; idx += sizeof(uint64_t);
+
+				std::string		content = std::string(msg[idx], msg.size() - idx);
+				*/
 				write("ping ok");
 			}
 			else if (msg.find("clients") != std::string::npos)
@@ -132,7 +154,8 @@ public:
 				}
 			}
 		}
-
+		
+		
 		void read()
 		{
 			if (!socket_.is_open())
@@ -212,7 +235,7 @@ public:
 	{
 		logger::log("[DEBUG] lobby_server start..");
 		// 5개의 로비, 인덱스 시작점은 0, 최대 4인 입장
-		lobby_manager_.create_lobbies(5, 0, 4);
+		lobby_manager_.create_lobbies(5, 0, 2);
 
 		curr_id_ = 0;
 		max_client_ = 20;

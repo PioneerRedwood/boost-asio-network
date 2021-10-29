@@ -124,8 +124,6 @@ class matching_server
 				{
 					std::string msg(io::buffer_cast<const char*>(buffer.get().data()), bytes - sizeof('\n'));
 
-					//std::cout << msg << "\n";
-
 					buffer.get().consume(buffer.get().size());
 
 					self->on_message(msg.substr(0, bytes));

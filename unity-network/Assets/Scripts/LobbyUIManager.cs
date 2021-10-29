@@ -75,11 +75,16 @@ public class LobbyUIManager : Singleton<LobbyUIManager>
 
     public void InitUI()
 	{
-		foreach (Lobby lobby in lobbies)
-		//for(int i = 0; i < 8; ++i)
+        LobbyObject[] objs = contentParentTransform.GetComponentsInChildren<LobbyObject>();
+		//foreach (Lobby lobby in lobbies)
+		for (int i = 0; i < 5; ++i)
 		{
-            GameObject obj = Instantiate(lobbyObject, Vector3.zero, Quaternion.identity);
-            obj.transform.SetParent(contentParentTransform);
-		}
+            //GameObject obj = Instantiate(lobbyObject, Vector3.zero, Quaternion.identity);
+            //obj.transform.SetParent(contentParentTransform);
+
+            objs[i].SetData(lobbies[i].index.ToString(), lobbies[i].name, $"{lobbies[i].currentCount} / {lobbies[i].maxCount}");
+
+
+        }
 	}
 }
