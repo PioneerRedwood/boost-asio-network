@@ -96,7 +96,6 @@ public:
 			return info_;
 		}
 	private:
-		//packet pack;
 		void on_message(const std::string& msg)
 		{
 			// 여기서 받은 메시지의 헤더를 골라내서 DISPATCHING
@@ -125,6 +124,7 @@ public:
 
 				std::string		content = std::string(msg[idx], msg.size() - idx);
 				*/
+
 				write("ping ok");
 			}
 			else if (msg.find("clients") != std::string::npos)
@@ -354,14 +354,14 @@ private:
 
 				std::cout << lobby_manager_.get_lobby_string();
 
-				int idx = 0;
+				/*int idx = 0;
 				for (auto iter = clients_.begin(); iter != clients_.end(); ++iter)
 				{
 					if (iter->second->connected())
 					{
 						iter->second->send(std::string("YOUR SESSION ID IS ") + std::to_string(idx++));
 					}
-				}
+				}*/
 
 				update();
 			});
