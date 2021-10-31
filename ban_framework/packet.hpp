@@ -40,67 +40,74 @@
 
 namespace ban
 {
-enum class packet_error : unsigned short
+	// 0 ~ 9999
+enum class packet_type : uint32_t
 {
-	NONE = 0,
+	// default 0 ~ 999
 
-	INIT_FAIL = 1,
+	// CLIENT -> SERVER, 1000 ~ 1999
+	REQUEST_CONNECT = 1001,
+	REQUEST_DISCONNECT = 1002,
 
-	// LOGIN 100 ~
+	// SERVER -> CLIENT, 2000 ~ 2999
+	RESPONSE_CONNECT = 2001,
+	RESPONSE_DISCONNECT = 2002,
 
-	// DB 200 ~
-
-	// REDIS 300 ~
-
-	// LOBBY 400 ~ 
-
-	// ROOM 500 ~
+	// FOR UTIL, ? ~ 9999
+	PING_PACKET = 6001,
 
 };
 
-enum class pakcet_identifier : unsigned short
+struct packet_header
 {
-	// CLIENT -> SERVER
-	REQUEST_CONNECT = 10,
-	REQUEST_DISCONNECT = 11,
+	uint16_t size_;
+	packet_type type_;
+	//uint32_t 
 
-	// SERVER -> CLIENT
-	RESPONSE_CONNECT = 20,
-	RESPONSE_DISCONNECT = 21,
+	packet_header()
+		: size_{ sizeof(packet_header) }
+		, type_{ static_cast<packet_type>(0) }
+	{}
 
-	// FOR UTIL
-	PACKET_ECHO = 100,
-
+	packet_header(uint16_t size, packet_type pack_id)
+		: size_{ size }
+		, type_{ pack_id }
+	{}
 };
 
-class packet_info
+struct packet_ping : public packet_header
 {
-public:
-	const static size_t PACKET_HEADER_SIZE = 4;
-	// USER
-	const static size_t USER_ID_MAX_LENGTH = 16;
-	const static size_t USER_PWD_MAX_LENGTH = 16;
+	uint16_t id_;
+	std::string msg_;
 
-};
+	packet_ping(uint16_t id, const std::string& msg)
+		:
+		packet_header{ sizeof(packet_ping), static_cast<packet_type>(packet_type::PING_PACKET) }
+		, id_{ id }
+		, msg_{ msg }
+	{}
 
-class echo_response_packet
-{
-public:
-	std::array<char, 1024> array_data_;
-	std::string data_;
-
-	void set(const std::string& data)
+	std::string serialize()
 	{
-		size_t total_size = packet_info::PACKET_HEADER_SIZE + data.size();
-		unsigned short casted_pack_id = static_cast<unsigned short>(pakcet_identifier::PACKET_ECHO);
+		return (std::to_string(size_) + std::to_string(static_cast<uint16_t>(type_)) + std::to_string(id_) + msg_);
+	}
 
-		std::vector<char> vec_data = std::vector<char>(total_size + sizeof(casted_pack_id));
-			
-		// data에 값 넣기
-		// ||PACKET_SIZE||PACKET_ID||DATA|| //
-		// 0~3, 4~7, 8~...
-		// Data Serialize는 나중에 ...
-			
+	packet_ping deserialize(std::string data)
+	{
+		size_t idx = 0;
+
+		size_ = static_cast<uint16_t>(std::stoi(data.substr(idx, sizeof(uint16_t))));
+		idx += sizeof(uint16_t);
+
+		type_ = static_cast<packet_type>(std::stoi(data.substr(idx, sizeof(uint32_t))));
+		idx += sizeof(uint32_t);
+
+		id_ = static_cast<uint16_t>(std::stoi(data.substr(idx, sizeof(uint16_t))));
+		idx += sizeof(uint16_t);
+
+		msg_ = data.substr(idx, sizeof(data));
+
+		return packet_ping(0, "");
 	}
 };
 

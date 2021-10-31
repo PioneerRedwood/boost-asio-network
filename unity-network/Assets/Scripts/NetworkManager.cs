@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections.Concurrent;
+using System.Text;
 
 public class NetworkManager : MonoBehaviour
 {
@@ -53,7 +54,15 @@ public class NetworkManager : MonoBehaviour
             InvokeRepeating(nameof(CheckMessageFromServer), 3.0f, 0.5f);
         }
 
+        InvokeRepeating(nameof(PingToServer), 1.0f, 1.0f);
     }
+
+    RedNetwork.PingPacket pingPacket = new RedNetwork.PingPacket(0, "ping");
+    private void PingToServer()
+	{
+        //lobbyClient.Send();
+        lobbyClient.Send(Encoding.ASCII.GetString(pingPacket.serialize()));
+	}
 
     public void OnLoginButtonClicked()
 	{

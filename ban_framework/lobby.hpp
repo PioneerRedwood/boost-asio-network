@@ -75,7 +75,6 @@ public:
 		{
 			return user(-1, "");
 		}
-
 	}
 
 	int size()

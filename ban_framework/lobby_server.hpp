@@ -70,8 +70,8 @@ public:
 
 		void stop() 
 		{ 
-			is_connected_ = false; 
-			socket_.close(); 
+			is_connected_ = false;
+			socket_.close();
 
 			server_.get_clients().erase(id_);
 			auto lobby = server_.get_lobby_manager().get_lobby(info_.lobby_idx_);
@@ -98,46 +98,29 @@ public:
 	private:
 		void on_message(const std::string& msg)
 		{
-			// 여기서 받은 메시지의 헤더를 골라내서 DISPATCHING
-			// 처리 모듈로 전송 PROCESSING
-			//std::cout << msg << "\n";
+			// 패킷이 완전한 것인지 체크 -> 처리 -- 서버에 큐로 보낼 건지?
+			using type = ban::packet_type;
+			switch (static_cast<type>(std::stoi(msg.substr(0, 4))))
+			{
+			case type::PING_PACKET:
+			
+				break;
+			default:
+				break;
+			}
+
 			if (msg.find("ping") != std::string::npos)
 			{
-				//std::cout << msg << "\n";
-				/*
-				size_t idx = 0;
-				packet pack;
-
-				bool			b = (bool)msg[idx]; idx += sizeof(bool);
-				float			f = (float)msg[idx]; idx += sizeof(float);
-				double			d = (double)msg[idx]; idx += sizeof(double);
-
-				int8_t			i8 = (int8_t)msg[idx]; idx += sizeof(int8_t);
-				int16_t			i16 = (int16_t)msg[idx]; idx += sizeof(int16_t);
-				int32_t			i32 = (int32_t)msg[idx]; idx += sizeof(int32_t);
-				int64_t			i64 = (int64_t)msg[idx]; idx += sizeof(int64_t);
-
-				uint8_t			ui8 = (uint8_t)msg[idx]; idx += sizeof(uint8_t);
-				uint16_t		ui16 = (uint16_t)msg[idx]; idx += sizeof(uint16_t);
-				uint32_t		ui32 = (uint32_t)msg[idx]; idx += sizeof(uint32_t);
-				uint64_t		ui64 = (uint64_t)msg[idx]; idx += sizeof(uint64_t);
-
-				std::string		content = std::string(msg[idx], msg.size() - idx);
-				*/
-
 				write("ping ok");
 			}
 			else if (msg.find("clients") != std::string::npos)
 			{
 				// 통지
-				//write(server_.get_lobby_clients(id_));
 				write(server_.get_lobby_string());
 			}
 			else if (msg.find("enter room") != std::string::npos)
 			{
 				std::string id = "0", room_num = "0";
-
-				//add(std::string user_id, int session_id)
 
 				auto lobby = server_.lobby_manager_.get_lobby(std::stoi(room_num));
 				if (lobby != nullptr)
@@ -164,6 +147,8 @@ public:
 				is_connected_ = false;
 				return;
 			}
+
+			//io::async_read_at(socket_, )
 
 			io::async_read_until(socket_, buffer_, '\n',
 				strand_.wrap([this, self = this->shared_from_this(), buffer = std::ref(buffer_)](const boost::system::error_code& error, size_t bytes)->void
