@@ -1,11 +1,9 @@
-// new version thread-safe deque
-// std::deque wrapper with thread-safe
-// C++17 mutex // scoped_lock
+// new version thread-safe STL wrapper
+// required complier version C++17 or upper, mutex scoped_lock
 
 #pragma once
 #include <mutex>
 #include <optional>
-#include <atomic>
 #include <deque>
 #include <condition_variable>
 

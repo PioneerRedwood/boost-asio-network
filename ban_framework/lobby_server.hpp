@@ -1,12 +1,9 @@
-/*
-* ban::prototype 벗어버림
-*/
-
 #pragma once
 #include "predef.hpp"
 #include "logger.hpp"
 #include "message.hpp"
 #include "tsdeque.hpp"
+#include "lobby.hpp"
 
 namespace io = boost::asio;
 using tcp = io::ip::tcp;
@@ -93,9 +90,8 @@ public:
 		{
 			io::post(context_, strand_.wrap([this, msg]()->void
 				{
-					bool is_empty = write_deque_.empty();
 					write_deque_.push_back(msg);
-					if (!is_empty)
+					if (!write_deque_.empty())
 					{
 						write();
 					}
@@ -138,7 +134,7 @@ public:
 							{
 								write_deque_.pop_front();
 
-								if (write_deque_.empty())
+								if (!write_deque_.empty())
 								{
 									write();
 								}
@@ -173,7 +169,7 @@ public:
 											}
 											else
 											{
-												// error 처리
+												// handle error
 											}
 
 										}));
@@ -186,7 +182,7 @@ public:
 						}
 						else
 						{
-							// erorr 처리
+							// handle error
 						}
 					}));
 		}
@@ -205,11 +201,10 @@ public:
 	using session = lobby_session<type>;
 	using msg = message<type>;
 
-	lobby_server(io::io_context& context, io::ip::port_type port, unsigned short update_rate)
+	lobby_server(io::io_context& context, io::ip::port_type port)
 		: context_{ context },
 		acceptor_{ context, tcp::endpoint(tcp::v4(), port) },
-		update_timer_{ context },
-		update_rate_{ update_rate }
+		manager_{*this, 10}
 	{}
 
 	~lobby_server()
@@ -217,9 +212,9 @@ public:
 		context_.stop();
 		logger::log("[DEBUG] lobby_server stopped..");
 
-		if (thr.joinable())
+		if (io_thr.joinable())
 		{
-			thr.join();
+			io_thr.join();
 		}
 	}
 
@@ -231,9 +226,12 @@ public:
 		max_client_ = 20;
 
 		accept();
-		//update();
 
-		thr = std::thread([this]() {context_.run(); });
+		lobby_thr = std::thread([this]() 
+			{ 
+				manager_.init(10);
+			});
+		io_thr = std::thread([this]() {context_.run(); });
 	}
 
 	void stop()
@@ -289,7 +287,7 @@ public:
 		}
 	}
 
-	void force_update(size_t max_msg = -1, bool is_wait = false)
+	void update(size_t max_msg = -1, bool is_wait = false)
 	{
 		if (is_wait)
 		{
@@ -353,22 +351,6 @@ private:
 			});
 	}
 
-	void update()
-	{
-		update_timer_.expires_from_now(boost::posix_time::milliseconds(update_rate_));
-		update_timer_.async_wait(
-			[this](const boost::system::error_code& error)->void
-			{
-				if (error)
-				{
-					logger::log("[ERROR] lobby_server update .. %s", error.message());
-					return;
-				}
-
-				update();
-			});
-	}
-
 	bool on_connect(std::shared_ptr<session> client)
 	{
 		msg data;
@@ -386,24 +368,31 @@ private:
 	{
 		switch (data.header_.id_)
 		{
-		case lobby_msg_type::HEARTBEAT:
+		case type::HEARTBEAT:
 		{
 			logger::log("[DEBUG] [%d] heartbeating", client->get_id());
-			msg _;
-			_.header_.id_ = type::HEARTBEAT;
-			client->send(_);
+			msg temp;
+			temp.header_.id_ = type::HEARTBEAT;
+			//client->send(temp);
+			message_client(temp, client);
 		}
 		break;
 		//case lobby_msg_type::
 		//{
 		//}
 		//break;
-		case lobby_msg_type::REQUEST_LOBBY_INFO:
+		case type::REQUEST_LOBBY_INFO:
 		{
+			logger::log("[DEBUG] [%d] REQUEST_LOBBY_INFO", client->get_id());
 			// 메시지 만들어서 전송
 			msg temp;
-			temp.header_.id_ = lobby_msg_type::RESPONSE_LOBBY_INFO;
+			temp.header_.id_ = type::RESPONSE_LOBBY_INFO;
 			temp << client->get_id();
+
+			//std::cout << manager_.get_lobby(0) << "\n";
+			std::stringstream ss;
+			ss << manager_;
+			temp << ss.str().c_str();
 
 			//client->send(data);
 			message_client(temp, client);
@@ -419,13 +408,13 @@ private:
 	tsdeque<owned_message<lobby_msg_type>> read_deque_;
 	std::deque<std::shared_ptr<session>> clients_;
 
-	boost::asio::deadline_timer update_timer_;
-	unsigned short update_rate_ = 0;
-
-	uint32_t curr_id_ = -1;
+	uint32_t curr_id_ = 0;
 	uint32_t max_client_ = UINT32_MAX >> 8;
 
-	std::thread thr;
-};
 
+	lobby_manager manager_;
+	
+	std::thread io_thr;
+	std::thread lobby_thr;
+};
 } // ban
