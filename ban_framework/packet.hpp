@@ -1,4 +1,4 @@
-// https://github.com/malamanteau/Packet/blob/master/Packet.hpp
+
 #pragma once
 #include "predef.hpp"
 
@@ -111,6 +111,7 @@ struct packet_ping : public packet_header
 	}
 };
 
+// https://github.com/malamanteau/Packet/blob/master/Packet.hpp
 class /*alignas(16)*/ packet final
 {
 	// A bool-like type that cannot be converted to integer or pointer types
