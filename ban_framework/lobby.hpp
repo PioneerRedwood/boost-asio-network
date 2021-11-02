@@ -13,6 +13,7 @@ struct lobby
 	uint32_t max_count_;
 
 	// 참가자
+	// 2021-11-02 조회하려면 벡터보다 맵이 낫지 않겠는가?
 	tsvector<uint32_t> parts_;
 
 	lobby(uint32_t idx, uint32_t max_count) : idx_{ idx }, max_count_{ max_count }
@@ -20,6 +21,19 @@ struct lobby
 		parts_.reserve(max_count);
 	}
 
+	// 문자열로 출력
+	std::string to_string()
+	{
+		return std::to_string(idx_) + ":" + std::to_string(parts_.size()) + "/" + std::to_string(max_count_);
+	}
+
+	// 참여가능한 상태인지
+	bool is_joinable()
+	{
+		return max_count_ > parts_.size() ? true : false;
+	}
+
+	// 로비 참가자들을 담아서 보여주기
 	friend std::ostream& operator<<(std::ostream& os, lobby lob)
 	{
 		os << "[";
@@ -39,10 +53,6 @@ struct lobby
 
 class lobby_manager
 {
-public:
-	// 로비 서버의 세션 인덱스를 담고 현재 참가자를 추적
-	// 각자의 접속 시간 같은걸 파악해야?
-
 private:
 	using server = lobby_server;
 	using umap = std::unordered_map<uint32_t, std::shared_ptr<lobby>>;
@@ -52,6 +62,7 @@ private:
 
 	uint32_t lobby_count_ = 0;
 public:
+	// 로비 서버, 최대 로비 수
 	lobby_manager(server& lobby_server, uint32_t lobby_count)
 		: server_{ lobby_server }, lobby_count_{ lobby_count }
 	{}
@@ -64,6 +75,12 @@ public:
 			std::shared_ptr<lobby> lob = std::make_shared<lobby>(i, max_count);
 			lobbies_.try_emplace(i, std::move(lob));
 		}
+	}
+
+	// 최대 로비 수 반환
+	uint32_t get_lobby_count()
+	{
+		return lobby_count_;
 	}
 
 	// 인덱스로 로비 반환, 실패하면 nullptr
@@ -92,19 +109,15 @@ public:
 		{
 			return false;
 		}
-	}
+	}	
 
 	// 로비 정보를 보기 좋게 스트림에 담아내기
-	friend std::ostream& operator << (std::ostream& os, lobby_manager manager)
+	friend std::ostream& operator << (std::ostream& os, lobby_manager& manager)
 	{
-		//os << "lobby|";
 		for (uint32_t i = 0; i < manager.lobby_count_; ++i)
 		{
 			auto lobby = manager.get_lobby(i);
-			os << \
-				std::to_string(lobby->idx_) << ":" << \
-				std::to_string(lobby->parts_.size()) << "/" << \
-				std::to_string(lobby->max_count_) << "|";
+			os << lobby->to_string() << "|";
 		}
 
 		return os;

@@ -24,6 +24,31 @@ struct message
 		return os;
 	}
 
+	// const char*, std::string 같은 문자열 데이터를 담아내기 위해
+	void append(const char* data, const size_t count)
+	{
+		size_t i = body_.size();
+		
+		body_.resize(body_.size() + count);
+
+		std::memcpy(body_.data() + i, &data, count);
+
+		header_.size_ = size();
+	}
+
+	// const char*, std::string 같은 문자열 데이터를 담아내기 위해
+	void append(const std::string& data)
+	{
+		//size_t i = body_.size();
+		//body_.resize(body_.size() + data.size());
+		//std::memcpy(body_.data() + i, &data, data.size());
+
+		std::vector<uint8_t> temp(data.begin(), data.end());
+
+		body_.insert(body_.end(), temp.begin(), temp.end());
+		header_.size_ = size();
+	}
+	
 	template<typename DataType>
 	friend message<T>& operator <<(message<T>& msg, const DataType& data)
 	{

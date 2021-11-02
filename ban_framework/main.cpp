@@ -9,7 +9,7 @@ int main()
 	boost::asio::io_context context;
 	//simple_udp_server server(context, 12190);
 	//ban::prototype::matching_server server(context, 9000, 4000);
-	ban::lobby_server server(context, 9000);
+	ban::lobby_server server(context, 9000, 15, 20);
 
 	server.start();
 

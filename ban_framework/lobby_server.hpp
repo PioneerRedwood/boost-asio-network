@@ -9,7 +9,9 @@ namespace io = boost::asio;
 using tcp = io::ip::tcp;
 
 namespace ban {
-
+/*
+* 로비 서버 생성자: io_context, port, 최대 로비 수, 로비 최대 접속 수
+*/
 class lobby_server
 {
 public:
@@ -27,6 +29,10 @@ public:
 		RESPONSE_LOBBY_INFO = 4,
 
 		REQUEST_ENTER_LOBBY = 5,
+		
+		RESPONSE_JOIN_LOBBY_OK = 6,
+		RESPONSE_JOIN_LOBBY_FAILED = 7,
+
 	};
 
 	template<typename T>
@@ -57,11 +63,11 @@ public:
 		bool is_connected_ = false;
 
 		// 메시지 수신 큐
-		tsdeque<owned_message<T>>& read_deque_;
+		tsdeque<owned_message<T>>& read_deque_{};
 		// 메시지 송신 큐
-		tsdeque<message<T>> write_deque_;
+		tsdeque<message<T>> write_deque_{};
 		// 일시적으로 사용할 메시지
-		message<T> temp_msg_;
+		message<T> temp_msg_{};
 
 		uint32_t id_ = 0;
 	public:
@@ -150,11 +156,12 @@ public:
 		void read()
 		{
 			// read header
-			io::async_read(socket_, io::buffer(&temp_msg_.header_, sizeof(uint32_t)),
+			io::async_read(socket_, io::buffer(&temp_msg_.header_, sizeof(ban::message_header<T>)),
 				strand_.wrap([this](std::error_code ec, size_t bytes)->void
 					{
 						if (!ec)
 						{
+							std::cout << "read msg size(not contained header)" << temp_msg_.header_.size_ << "\n";
 							if (temp_msg_.header_.size_ > 0)
 							{
 								temp_msg_.body_.resize(temp_msg_.header_.size_);
@@ -201,11 +208,15 @@ public:
 	using session = lobby_session<type>;
 	using msg = message<type>;
 
-	lobby_server(io::io_context& context, io::ip::port_type port)
+	
+	lobby_server(io::io_context& context, io::ip::port_type port, uint32_t lobby_count, uint32_t count_per_lobby)
 		: context_{ context },
 		acceptor_{ context, tcp::endpoint(tcp::v4(), port) },
-		manager_{*this, 10}
-	{}
+		manager_{*this, lobby_count}
+	{
+		
+		manager_.init(count_per_lobby);
+	}
 
 	~lobby_server()
 	{
@@ -223,14 +234,9 @@ public:
 		logger::log("[DEBUG] lobby_server start..");
 
 		curr_id_ = 0;
-		max_client_ = 20;
 
 		accept();
 
-		lobby_thr = std::thread([this]() 
-			{ 
-				manager_.init(10);
-			});
 		io_thr = std::thread([this]() {context_.run(); });
 	}
 
@@ -244,6 +250,7 @@ public:
 	{
 		if (client && client->connected())
 		{
+			//std::cout << "sent " << data << "\n";
 			client->send(data);
 		}
 		else
@@ -321,7 +328,7 @@ private:
 				{
 					if (clients_.size() > max_client_)
 					{
-						logger::log("[DEBUG] connection refused MAX_CLIENT");
+						logger::log("[DEBUG] connection refused MAX_CLIENT = %d", max_client_);
 					}
 					else
 					{
@@ -370,35 +377,71 @@ private:
 		{
 		case type::HEARTBEAT:
 		{
-			logger::log("[DEBUG] [%d] heartbeating", client->get_id());
+			//logger::log("[DEBUG] [%d] heartbeating", client->get_id());
 			msg temp;
 			temp.header_.id_ = type::HEARTBEAT;
 			//client->send(temp);
 			message_client(temp, client);
+			break;
 		}
-		break;
 		//case lobby_msg_type::
 		//{
 		//}
 		//break;
 		case type::REQUEST_LOBBY_INFO:
 		{
-			logger::log("[DEBUG] [%d] REQUEST_LOBBY_INFO", client->get_id());
+			//logger::log("[DEBUG] [%d] REQUEST_LOBBY_INFO", client->get_id());
 			// 메시지 만들어서 전송
 			msg temp;
 			temp.header_.id_ = type::RESPONSE_LOBBY_INFO;
-			temp << client->get_id();
+			//temp << client->get_id();
 
-			//std::cout << manager_.get_lobby(0) << "\n";
-			std::stringstream ss;
-			ss << manager_;
-			temp << ss.str().c_str();
+			std::ostringstream oss;
+			oss << manager_;
+			temp.append(oss.str());
+
+			std::cout << manager_ << "\n";
 
 			//client->send(data);
 			message_client(temp, client);
+			break;
 		}
-		break;
+		case type::REQUEST_ENTER_LOBBY:
+		{
+			// 데이터 파싱
+			uint32_t lobby_num = UINT32_MAX;
+			data >> lobby_num;
+
+			msg temp;
+			// 해당 로비에 입장이 가능? -- 아래 조건 체크
+			// 1) 로비 인덱스 유효한지
+			// 2) 로비 여분 자리 있는지
+			if (lobby_num < manager_.get_lobby_count() && manager_.get_lobby(lobby_num)->is_joinable())
+			{
+				temp.header_.id_ = type::RESPONSE_JOIN_LOBBY_OK;
+				manager_.get_lobby(lobby_num)->parts_.push_back(client->get_id());
+				
+				// #1 생각했는데
+				// - 들어온 유저한테는 입장한 로비에 있는 유저 정보 전송
+				// - 기존 로비에 있던 유저한테는 새로 들어온 신입 정보 전송
+
+				// #2 better option
+				// 여기선 성공과 실패에 관한 메시지만 전달
+				// 클라쪽에서 성공하면 자신이 속한 로비 정보 요청
+				
+				// 
+			}
+			else
+			{
+				// 실패 원인은??
+				temp.header_.id_ = type::RESPONSE_JOIN_LOBBY_FAILED;
+				
+			}
+			message_client(temp, client);
+			break;
 		}
+		} // switch
+		
 	}
 
 private:
@@ -411,10 +454,8 @@ private:
 	uint32_t curr_id_ = 0;
 	uint32_t max_client_ = UINT32_MAX >> 8;
 
-
 	lobby_manager manager_;
 	
 	std::thread io_thr;
-	std::thread lobby_thr;
 };
 } // ban
