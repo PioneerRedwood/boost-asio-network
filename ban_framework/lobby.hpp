@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "lobby_server.hpp"
-#include "tsvector.hpp"
+#include <vector>
 
 namespace ban {
 class lobby_server;
@@ -14,7 +14,7 @@ struct lobby
 
 	// 참가자
 	// 2021-11-02 조회하려면 벡터보다 맵이 낫지 않겠는가?
-	tsvector<uint32_t> parts_;
+	std::vector<uint32_t> parts_;
 
 	lobby(uint32_t idx, uint32_t max_count) : idx_{ idx }, max_count_{ max_count }
 	{

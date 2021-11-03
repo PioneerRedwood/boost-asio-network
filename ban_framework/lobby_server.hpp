@@ -4,6 +4,7 @@
 #include "message.hpp"
 #include "tsdeque.hpp"
 #include "lobby.hpp"
+#include "user.hpp"
 
 namespace io = boost::asio;
 using tcp = io::ip::tcp;
@@ -18,21 +19,31 @@ public:
 	// 0 ~ 65535
 	enum class lobby_msg_type : uint32_t
 	{
-		HEARTBEAT = 0,
+		// networking core msg ~ 1000
+		HEARTBEAT,
 
-		// basic network
-		ACCEPT_CONNECT = 1,
-		SESSION_DISCONNECT = 2,
+		ACCEPT_CONNECT,
+		SESSION_DISCONNECT,
+		CONNECTION_USER_INFO,
 
-		// lobby
-		REQUEST_LOBBY_INFO = 3,
-		RESPONSE_LOBBY_INFO = 4,
+		// lobby ~ 2000
+		LOBBY_INFO,
+		ALL_LOBBY_INFO,
 
-		REQUEST_ENTER_LOBBY = 5,
+		JOIN_LOBBY,
+		JOIN_LOBBY_OK,
+		JOIN_LOBBY_FAIL_REJECTED,
+		JOIN_LOBBY_FAIL_NOSPACE,
+		JOIN_LOBBY_FAIL_NOTEXSISTS,
+		JOIN_LOBBY_FAIL_ALREADYIN,
+
+		NEW_JOINED_LOBBY,
+
+		// lobby chatting stuff ~ 3000
+		CHAT_ALL,
+		CHAT_GROUP,
+		CHAT_SPECIFIC,
 		
-		RESPONSE_JOIN_LOBBY_OK = 6,
-		RESPONSE_JOIN_LOBBY_FAILED = 7,
-
 	};
 
 	template<typename T>
@@ -59,8 +70,7 @@ public:
 		io::io_context& context_;
 		tcp::socket socket_;
 		io::io_context::strand strand_;
-
-		bool is_connected_ = false;
+		user user_;
 
 		// 메시지 수신 큐
 		tsdeque<owned_message<T>>& read_deque_{};
@@ -69,19 +79,20 @@ public:
 		// 일시적으로 사용할 메시지
 		message<T> temp_msg_{};
 
-		uint32_t id_ = 0;
+		bool is_connected_ = false;
 	public:
-		lobby_session(io::io_context& context, tcp::socket socket, tsdeque<owned_message<T>>& read_deque, uint32_t id)
-			: context_(context), socket_(std::move(socket)), strand_(context), read_deque_(read_deque), id_(id)
+		lobby_session(io::io_context& context, tcp::socket socket, tsdeque<owned_message<T>>& read_deque)
+			: context_(context), socket_(std::move(socket)), strand_(context), read_deque_(read_deque), user_(0, 0)
 		{}
 
-		void start()
+		void start(std::time_t connection_time, uint32_t session_id)
 		{
 			is_connected_ = true;
+			user_ = user{ connection_time, session_id };
 			read();
 		}
 
-		bool connected() const { return is_connected_; }
+		bool connected() { return user_.is_valid(); }
 
 		tcp::socket& socket() { return socket_; }
 
@@ -89,6 +100,10 @@ public:
 		{
 			is_connected_ = false;
 			socket_.close();
+		}
+
+		void restart()
+		{
 
 		}
 
@@ -104,7 +119,9 @@ public:
 				}));
 		}
 
-		uint32_t get_id() const { return id_; }
+		const uint32_t get_id() { return user_.get_session_id(); }
+
+		const user& get_user_info() { return *user_; }
 
 	private:
 		void write()
@@ -115,6 +132,7 @@ public:
 					{
 						if (!ec)
 						{
+							user_.update_write_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
 							if (write_deque_.front().body_.size() > 0)
 							{
 								// write body
@@ -123,6 +141,7 @@ public:
 										{
 											if (!ec)
 											{
+												user_.update_write_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
 												write_deque_.pop_front();
 
 												if (!write_deque_.empty())
@@ -133,6 +152,7 @@ public:
 											else
 											{
 												// handle error
+												logger::log("[ERROR] @async_write error_code %d", ec.value());
 											}
 										}));
 							}
@@ -149,6 +169,7 @@ public:
 						else
 						{
 							// handle error
+							logger::log("[ERROR] @async_write error_code %d", ec.value());
 						}
 					}));
 		}
@@ -161,7 +182,8 @@ public:
 					{
 						if (!ec)
 						{
-							std::cout << "read msg size(not contained header)" << temp_msg_.header_.size_ << "\n";
+							user_.update_read_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+							//std::cout << "read msg size(not contained header)" << temp_msg_.header_.size_ << "\n";
 							if (temp_msg_.header_.size_ > 0)
 							{
 								temp_msg_.body_.resize(temp_msg_.header_.size_);
@@ -172,13 +194,15 @@ public:
 										{
 											if (!ec)
 											{
+												user_.update_read_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+
 												enqueue();
 											}
 											else
 											{
 												// handle error
+												logger::log("[ERROR] @async_read error_code %d", ec.value());
 											}
-
 										}));
 							}
 							else
@@ -190,6 +214,7 @@ public:
 						else
 						{
 							// handle error
+							logger::log("[ERROR] @async_read error_code %d", ec.value());
 						}
 					}));
 		}
@@ -207,15 +232,14 @@ public:
 	using type = lobby_msg_type;
 	using session = lobby_session<type>;
 	using msg = message<type>;
-
 	
 	lobby_server(io::io_context& context, io::ip::port_type port, uint32_t lobby_count, uint32_t count_per_lobby)
 		: context_{ context },
 		acceptor_{ context, tcp::endpoint(tcp::v4(), port) },
-		manager_{*this, lobby_count}
+		lobby_manager_{*this, lobby_count}
 	{
 		
-		manager_.init(count_per_lobby);
+		lobby_manager_.init(count_per_lobby);
 	}
 
 	~lobby_server()
@@ -232,8 +256,6 @@ public:
 	void start()
 	{
 		logger::log("[DEBUG] lobby_server start..");
-
-		curr_id_ = 0;
 
 		accept();
 
@@ -257,11 +279,14 @@ public:
 		{
 			on_disconnect(client);
 
+			map_.erase(client->get_id());
+
 			client.reset();
 
 			// 덱에서 삭제
-			clients_.erase(
-				std::remove(clients_.begin(), clients_.end(), client), clients_.end());
+			//clients_.erase(
+			//	std::remove(clients_.begin(), clients_.end(), client), clients_.end());
+			
 		}
 	}
 
@@ -270,27 +295,37 @@ public:
 	{
 		bool is_invalid = false;
 
-		for (auto& client : clients_)
+		std::vector<uint32_t> temp;
+		//for (auto& client : clients_)
+		for (auto& client : map_)
 		{
-			if (client && client->connected())
+			if (client.second && client.second->connected())
 			{
-				if (client != excluded)
+				if (client.second != excluded)
 				{
-					client->send(data);
+					client.second->send(data);
 				}
 			}
 			else
 			{
-				on_disconnect(client);
-				client.reset();
+				on_disconnect(client.second);
+				client.second.reset();
+
+				temp.push_back(client.first);
 				is_invalid = true;
 			}
 		}
 
 		if (is_invalid)
 		{
-			clients_.erase(
-				std::remove(clients_.begin(), clients_.end(), nullptr), clients_.end());
+			for (uint32_t c : temp)
+			{
+				map_.erase(c);
+			}
+
+			// 덱 삭제
+			//clients_.erase(
+			//	std::remove(clients_.begin(), clients_.end(), nullptr), clients_.end());
 		}
 	}
 
@@ -326,7 +361,7 @@ private:
 				}
 				else
 				{
-					if (clients_.size() > max_client_)
+					if (map_.size() > max_client_)
 					{
 						logger::log("[DEBUG] connection refused MAX_CLIENT = %d", max_client_);
 					}
@@ -339,15 +374,15 @@ private:
 
 						std::shared_ptr<session> conn =
 							std::make_shared<session>(
-								context_, std::move(socket), read_deque_, curr_id_++);
+								context_, std::move(socket), read_deque_);
 												
 						if (on_connect(conn))
 						{
-							clients_.push_back(std::move(conn));
-							clients_.back()->start();
+							map_.insert(std::pair<uint32_t, std::shared_ptr<session>>(curr_id_++, conn));
+							conn->start(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), curr_id_);
 
-							logger::log("[DEBUG] [%d] connection approved", clients_.back()->get_id());
-						}
+							logger::log("[DEBUG] [%d] connection approved", conn->get_id());
+ 						}
 						else
 						{
 							logger::log("[DEBUG] connection denied");
@@ -362,6 +397,10 @@ private:
 	{
 		msg data;
 		data.header_.id_ = type::ACCEPT_CONNECT;
+
+		// 유저 세션 아이디 전송 
+		data << client->get_id();
+
 		client->send(data);
 		return true;
 	}
@@ -369,6 +408,9 @@ private:
 	void on_disconnect(std::shared_ptr<session> client)
 	{
 		logger::log("[DEBUG] removing client [%d]", client->get_id());
+		
+		// 로비 매니저에게 해당 클라이언트 정보 넘겨줘서 있으면 삭제
+		// 유저 매니저에게 해당 클라이언트 정보 넘겨줘서 있으면 삭제
 	}
 
 	void on_message(std::shared_ptr<session> client, msg& data)
@@ -380,65 +422,125 @@ private:
 			//logger::log("[DEBUG] [%d] heartbeating", client->get_id());
 			msg temp;
 			temp.header_.id_ = type::HEARTBEAT;
-			//client->send(temp);
+
 			message_client(temp, client);
 			break;
 		}
-		//case lobby_msg_type::
-		//{
-		//}
-		//break;
-		case type::REQUEST_LOBBY_INFO:
+		case type::CONNECTION_USER_INFO:	
 		{
-			//logger::log("[DEBUG] [%d] REQUEST_LOBBY_INFO", client->get_id());
-			// 메시지 만들어서 전송
-			msg temp;
-			temp.header_.id_ = type::RESPONSE_LOBBY_INFO;
-			//temp << client->get_id();
+			uint32_t id;
+			uint32_t name_size;
+			std::string name;
 
-			std::ostringstream oss;
-			oss << manager_;
-			temp.append(oss.str());
+			int idx = 0;
+			data.read(id, idx);
+			data.read(name_size, idx += sizeof(uint32_t));
+			data.read_string(name, idx += sizeof(uint32_t), name_size);
 
-			std::cout << manager_ << "\n";
-
-			//client->send(data);
-			message_client(temp, client);
+			std::cout << id << ": " << name << "\n";
+			// 여기서 새롭게 유저 정보를 업데이트해도 될듯
 			break;
 		}
-		case type::REQUEST_ENTER_LOBBY:
+		case type::LOBBY_INFO:
 		{
-			// 데이터 파싱
+			// 수신
 			uint32_t lobby_num = UINT32_MAX;
-			data >> lobby_num;
+			data.read(lobby_num, 0);
+
+			// 송신 
+			msg temp;
+			temp.header_.id_ = type::LOBBY_INFO;
+			temp.write_string(lobby_manager_.get_lobby(lobby_num)->to_string());
+
+			message_client(temp, client);
+			break;
+		}
+		case type::ALL_LOBBY_INFO:
+		{
+			std::ostringstream oss;
+			oss << lobby_manager_;
 
 			msg temp;
-			// 해당 로비에 입장이 가능? -- 아래 조건 체크
-			// 1) 로비 인덱스 유효한지
-			// 2) 로비 여분 자리 있는지
-			if (lobby_num < manager_.get_lobby_count() && manager_.get_lobby(lobby_num)->is_joinable())
-			{
-				temp.header_.id_ = type::RESPONSE_JOIN_LOBBY_OK;
-				manager_.get_lobby(lobby_num)->parts_.push_back(client->get_id());
-				
-				// #1 생각했는데
-				// - 들어온 유저한테는 입장한 로비에 있는 유저 정보 전송
-				// - 기존 로비에 있던 유저한테는 새로 들어온 신입 정보 전송
+			temp.header_.id_ = type::ALL_LOBBY_INFO;
+			temp.write_string(oss.str());
 
-				// #2 better option
-				// 여기선 성공과 실패에 관한 메시지만 전달
-				// 클라쪽에서 성공하면 자신이 속한 로비 정보 요청
-				
-				// 
+			message_client(temp, client);
+			break;
+		}
+		case type::JOIN_LOBBY:
+		{
+			uint32_t lobby_num = UINT32_MAX;
+			data.read(lobby_num, 0);
+
+			if (lobby_num < lobby_manager_.get_lobby_count())
+			{
+				if (lobby_manager_.get_lobby(lobby_num)->is_joinable())
+				{
+					bool already_in = false;
+					for (uint32_t id : lobby_manager_.get_lobby(lobby_num)->parts_)
+					{
+						if (id == client->get_id())
+						{
+							already_in = true;
+							break;
+						}
+					}
+
+					if (already_in)
+					{
+						msg temp;
+						temp.header_.id_ = type::JOIN_LOBBY_FAIL_ALREADYIN;
+						message_client(temp, client);
+						return;
+					}
+
+					msg temp;
+					temp.header_.id_ = type::JOIN_LOBBY_OK;
+					lobby_manager_.get_lobby(lobby_num)->parts_.push_back(client->get_id());
+
+					message_client(temp, client);
+
+					temp.header_.id_ = type::NEW_JOINED_LOBBY;
+					temp << client->get_id();
+
+					for (uint32_t id : lobby_manager_.get_lobby(lobby_num)->parts_)
+					{
+						if (client->get_id() != id)
+						{
+							message_client(temp, map_[id]);
+						}
+					}
+				}
+				else
+				{
+					// 참여 불가한 상태
+					msg temp;
+					temp.header_.id_ = type::JOIN_LOBBY_FAIL_NOSPACE;
+					message_client(temp, client);
+				}
 			}
 			else
 			{
-				// 실패 원인은??
-				temp.header_.id_ = type::RESPONSE_JOIN_LOBBY_FAILED;
-				
+				// 존재하지 않음
+				msg temp;
+				temp.header_.id_ = type::JOIN_LOBBY_FAIL_NOTEXSISTS;
+				message_client(temp, client);
 			}
-			message_client(temp, client);
+			
 			break;
+		}
+		case type::CHAT_ALL:
+		{
+			// 전체 메시지
+			message_all_client(data);
+		}
+		case type::CHAT_GROUP:
+		{
+
+		}
+		case type::CHAT_SPECIFIC:
+		{
+
 		}
 		} // switch
 		
@@ -449,13 +551,14 @@ private:
 	tcp::acceptor acceptor_;
 
 	tsdeque<owned_message<lobby_msg_type>> read_deque_;
-	std::deque<std::shared_ptr<session>> clients_;
+	//std::deque<std::shared_ptr<session>> clients_;
+	std::unordered_map<uint32_t, std::shared_ptr<session>> map_;
 
+	// 유저 아이디 추적
 	uint32_t curr_id_ = 0;
 	uint32_t max_client_ = UINT32_MAX >> 8;
 
-	lobby_manager manager_;
-	
+	lobby_manager lobby_manager_;
 	std::thread io_thr;
 };
 } // ban

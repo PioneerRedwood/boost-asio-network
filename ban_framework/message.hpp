@@ -1,8 +1,66 @@
+Ôªø/*
+	License (OLC-3)
+	~~~~~~~~~~~~~~~
+
+	Copyright 2018 - 2020 OneLoneCoder.com
+
+	Redistribution and use in source and binary forms, with or without
+	modification, are permitted provided that the following conditions
+	are met:
+
+	1. Redistributions or derivations of source code must retain the above
+	copyright notice, this list of conditions and the following disclaimer.
+
+	2. Redistributions or derivative works in binary form must reproduce
+	the above copyright notice. This list of conditions and the following
+	disclaimer must be reproduced in the documentation and/or other
+	materials provided with the distribution.
+
+	3. Neither the name of the copyright holder nor the names of its
+	contributors may be used to endorse or promote products derived
+	from this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+	"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+	LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+	A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+	HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+	SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+	LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+	DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+	THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+	OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+	Author
+	~~~~~~
+	David Barr, aka javidx9, ¬©OneLoneCoder 2019, 2020
+*/
+
 #pragma once
 #include <ostream>
 #include <vector>
 
 namespace ban {
+struct vector2
+{
+	float x;
+	float y;
+public:
+	std::string to_string() { return "x:" + std::to_string(x) + " y:" + std::to_string(y); }
+	static size_t size() { return sizeof(float) * 2; }
+};
+
+struct vector3
+{
+	float x;
+	float y;
+	float z;
+public:
+	std::string to_string() { return "x:" + std::to_string(x) + " y:" + std::to_string(y) + " z:" + std::to_string(z); }
+	static size_t size() { return sizeof(float) * 3; }
+};
+
 template<typename T>
 struct message_header
 {
@@ -24,33 +82,8 @@ struct message
 		return os;
 	}
 
-	// const char*, std::string ∞∞¿∫ πÆ¿⁄ø≠ µ•¿Ã≈Õ∏¶ ¥„æ∆≥ª±‚ ¿ß«ÿ
-	void append(const char* data, const size_t count)
-	{
-		size_t i = body_.size();
-		
-		body_.resize(body_.size() + count);
-
-		std::memcpy(body_.data() + i, &data, count);
-
-		header_.size_ = size();
-	}
-
-	// const char*, std::string ∞∞¿∫ πÆ¿⁄ø≠ µ•¿Ã≈Õ∏¶ ¥„æ∆≥ª±‚ ¿ß«ÿ
-	void append(const std::string& data)
-	{
-		//size_t i = body_.size();
-		//body_.resize(body_.size() + data.size());
-		//std::memcpy(body_.data() + i, &data, data.size());
-
-		std::vector<uint8_t> temp(data.begin(), data.end());
-
-		body_.insert(body_.end(), temp.begin(), temp.end());
-		header_.size_ = size();
-	}
-	
 	template<typename DataType>
-	friend message<T>& operator <<(message<T>& msg, const DataType& data)
+	friend message<T>& operator << (message<T>& msg, const DataType& data)
 	{
 		static_assert(std::is_standard_layout_v<DataType>, "Data is too complex to be pushed into vector");
 
@@ -79,6 +112,65 @@ struct message
 		msg.header_.size_ = msg.size();
 
 		return msg;
+	}
+
+	// additional
+	// const char*, std::string Í∞ôÏùÄ Î¨∏ÏûêÏó¥ Îç∞Ïù¥ÌÑ∞Î•º Îã¥ÏïÑÎÇ¥Í∏∞ ÏúÑÌï¥
+	void write_string(const std::string& data)
+	{
+		std::vector<uint8_t> temp(data.begin(), data.end());
+
+		body_.insert(body_.end(), temp.begin(), temp.end());
+		header_.size_ = size();
+	}
+
+	void write_vector2(const vector2& data)
+	{
+		*this << data.x << data.y;
+	}
+
+	void write_vector3(const vector3& data)
+	{
+		*this << data.x << data.y << data.z;
+	}
+
+	void read_string(std::string& data, int start_index, int count)
+	{
+		if ((int)body_.size() < (count - start_index))
+		{
+			return;
+		}
+
+		try
+		{
+			data = std::string((char*)body_.data() + start_index, count);
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << e.what() << "\n";
+			return;
+		}
+	}
+
+	void read_vector2(vector2& data, int start_index)
+	{
+		read(data.x, start_index);
+		read(data.y, start_index + sizeof(float));
+	}
+
+	void read_vector3(vector3& data, int start_index)
+	{
+		read(data.x, start_index);
+		read(data.y, start_index + sizeof(float));
+		read(data.z, start_index + sizeof(float) + sizeof(float));
+	}
+
+	// Î©îÏãúÏßÄ Î∞îÎîîÎ•º Ï£ºÏñ¥ÏßÑ Î≤îÏúÑÎßåÌÅº ÏùΩÏñ¥ÎÇ¥Í∏∞
+	template<typename DataType>
+	void read(DataType& data, int start_index)
+	{
+		static_assert(std::is_standard_layout_v<DataType>, "Data is too complex to be pulled from vector");
+		std::memcpy(&data, body_.data() + start_index, sizeof(DataType));
 	}
 };
 }
