@@ -25,24 +25,31 @@ public:
 public:
 	uint32_t get_session_id() { return session_id_; }
 
-	std::string get_user_id() { return user_id_; }
+	const std::string get_user_id() { return user_id_; }
 
 	void set_user_id(std::string user_id) { user_id_ = user_id; }
 
 	std::time_t get_connected_time() { return connection_time_; }
 
 	// 유효한 지 검사
-	bool is_valid() const
+	bool is_valid()
 	{
 		std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 		if ((now - last_read_time_ < validation_value_) && (now - last_write_time_ < validation_value_))
 		{
+			is_connection_time_over_ = true;
 			return true;
 		}
 		else
 		{
+			is_connection_time_over_ = false;
 			return false;
 		}
+	}
+
+	bool is_time_over() const
+	{
+		
 	}
 
 	void update_read_time(std::time_t time)
@@ -63,10 +70,13 @@ private:
 	std::time_t last_read_time_;
 	std::time_t last_write_time_;
 
+	
 	std::time_t validation_value_ = 10;
+
+	bool is_connection_time_over_ = false;
 };
 
-// 2021-11-03 필요성에 대해 검토 중이나 특별한 이유가 안 보임 -- it will be deprecated ...
+// 2021-11-04 deprecated
 /*
 class user_manager
 {

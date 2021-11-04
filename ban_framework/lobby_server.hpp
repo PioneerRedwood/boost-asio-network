@@ -41,7 +41,7 @@ public:
 
 		// lobby chatting stuff ~ 3000
 		CHAT_ALL,
-		CHAT_GROUP,
+		CHAT_LOBBY,
 		CHAT_SPECIFIC,
 		
 	};
@@ -92,7 +92,10 @@ public:
 			read();
 		}
 
-		bool connected() { return user_.is_valid(); }
+		// 2021-11-04 유저의 통신 상태를 추적하기 위한 스마트 연결 검사는 
+		// 현재로서 적합한 연결 타임아웃을 정하지 못해 지금은 소켓이 열려있는지만 검사
+		//bool connected() { return user_.is_valid(); }
+		bool connected() const { return socket_.is_open(); }
 
 		tcp::socket& socket() { return socket_; }
 
@@ -111,8 +114,9 @@ public:
 		{
 			io::post(context_, strand_.wrap([this, msg]()->void
 				{
+					bool is_writing_msg = !write_deque_.empty();
 					write_deque_.push_back(msg);
-					if (!write_deque_.empty())
+					if (!is_writing_msg)
 					{
 						write();
 					}
@@ -121,7 +125,9 @@ public:
 
 		const uint32_t get_id() { return user_.get_session_id(); }
 
-		const user& get_user_info() { return *user_; }
+		user& get_user_info() { return std::ref(user_); }
+
+		void set_user_id(const std::string& id) { user_.set_user_id(id); }
 
 	private:
 		void write()
@@ -141,7 +147,7 @@ public:
 										{
 											if (!ec)
 											{
-												user_.update_write_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+												//user_.update_write_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
 												write_deque_.pop_front();
 
 												if (!write_deque_.empty())
@@ -180,7 +186,7 @@ public:
 			io::async_read(socket_, io::buffer(&temp_msg_.header_, sizeof(ban::message_header<T>)),
 				strand_.wrap([this](std::error_code ec, size_t bytes)->void
 					{
-						if (!ec)
+ 						if (!ec)
 						{
 							user_.update_read_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
 							//std::cout << "read msg size(not contained header)" << temp_msg_.header_.size_ << "\n";
@@ -194,7 +200,7 @@ public:
 										{
 											if (!ec)
 											{
-												user_.update_read_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+												//user_.update_read_time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
 
 												enqueue();
 											}
@@ -376,12 +382,14 @@ private:
 							std::make_shared<session>(
 								context_, std::move(socket), read_deque_);
 												
-						if (on_connect(conn))
+						if (on_connect(conn, curr_id_))
 						{
-							map_.insert(std::pair<uint32_t, std::shared_ptr<session>>(curr_id_++, conn));
+							//map_.insert(std::pair<uint32_t, std::shared_ptr<session>>(curr_id_, conn));
+							map_.try_emplace(curr_id_, conn);
 							conn->start(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), curr_id_);
 
 							logger::log("[DEBUG] [%d] connection approved", conn->get_id());
+							curr_id_++;
  						}
 						else
 						{
@@ -393,14 +401,14 @@ private:
 			});
 	}
 
-	bool on_connect(std::shared_ptr<session> client)
+	bool on_connect(std::shared_ptr<session> client, uint32_t id)
 	{
 		msg data;
 		data.header_.id_ = type::ACCEPT_CONNECT;
 
 		// 유저 세션 아이디 전송 
-		data << client->get_id();
-
+		data << id;
+		std::cout << id << "\n";
 		client->send(data);
 		return true;
 	}
@@ -408,9 +416,8 @@ private:
 	void on_disconnect(std::shared_ptr<session> client)
 	{
 		logger::log("[DEBUG] removing client [%d]", client->get_id());
-		
-		// 로비 매니저에게 해당 클라이언트 정보 넘겨줘서 있으면 삭제
-		// 유저 매니저에게 해당 클라이언트 정보 넘겨줘서 있으면 삭제
+
+
 	}
 
 	void on_message(std::shared_ptr<session> client, msg& data)
@@ -428,6 +435,7 @@ private:
 		}
 		case type::CONNECTION_USER_INFO:	
 		{
+			// 받은 아이디는 일시적인 것, 여기서 굳이 유저의 아이디를 알 필요가 있을까
 			uint32_t id;
 			uint32_t name_size;
 			std::string name;
@@ -437,8 +445,12 @@ private:
 			data.read(name_size, idx += sizeof(uint32_t));
 			data.read_string(name, idx += sizeof(uint32_t), name_size);
 
-			std::cout << id << ": " << name << "\n";
-			// 여기서 새롭게 유저 정보를 업데이트해도 될듯
+			logger::log("[DEBUG] %d: %s connected", id, name.c_str());
+			// 2021-11-03 여기서 새롭게 유저 정보를 업데이트해도 될듯
+			if (map_.find(client->get_id()) != map_.end())
+			{
+				map_[client->get_id()]->get_user_info().set_user_id(name);
+			}
 			break;
 		}
 		case type::LOBBY_INFO:
@@ -463,6 +475,8 @@ private:
 			msg temp;
 			temp.header_.id_ = type::ALL_LOBBY_INFO;
 			temp.write_string(oss.str());
+
+			std::cout << "request ALL_LOBBY_INFO: " << lobby_manager_ << "\n";
 
 			message_client(temp, client);
 			break;
@@ -531,16 +545,36 @@ private:
 		}
 		case type::CHAT_ALL:
 		{
-			// 전체 메시지
-			message_all_client(data);
-		}
-		case type::CHAT_GROUP:
-		{
+			// 데이터 파싱
+			// 내용만
+			uint32_t contents_size;
+			std::string contents;
+			data.read(contents_size, 0);
+			data.read_string(contents, sizeof(uint32_t), contents_size);
 
+			std::string time;
+			util::time::get_time(time, util::time::time_type::time);
+			// 서버에 콘솔
+			std::cout << time << "\t" << client->get_user_info().get_user_id() << ": " << contents << "\n";
+
+			// 전체에 메시지
+			msg temp;
+			temp.header_.id_ = type::CHAT_ALL;
+			temp.write_string(time);
+			temp.write_string(contents);
+
+			//message_client(temp, client);
+			message_all_client(temp);
+		}
+		case type::CHAT_LOBBY:
+		{
+			// 로비 내 유저에게 메시지
+			// 1. 데이터 파싱
+			// 2. 
 		}
 		case type::CHAT_SPECIFIC:
 		{
-
+			// 귓속말
 		}
 		} // switch
 		
