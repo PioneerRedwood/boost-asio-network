@@ -55,7 +55,7 @@ class lobby_manager
 {
 private:
 	using server = lobby_server;
-	using umap = std::unordered_map<uint32_t, std::shared_ptr<lobby>>;
+	using umap = std::unordered_map<uint32_t, lobby*>;
 
 	umap lobbies_ = {};
 	server& server_;
@@ -72,7 +72,8 @@ public:
 	{
 		for (uint32_t i = 0; i < lobby_count_; ++i)
 		{
-			std::shared_ptr<lobby> lob = std::make_shared<lobby>(i, max_count);
+			//std::shared_ptr<lobby> lob = std::make_shared<lobby>(i, max_count);
+			lobby* lob = new lobby{ i, max_count };
 			lobbies_.try_emplace(i, std::move(lob));
 		}
 	}
@@ -84,16 +85,9 @@ public:
 	}
 
 	// 인덱스로 로비 반환, 실패하면 nullptr
-	std::shared_ptr<lobby> get_lobby(const uint32_t idx)
+	lobby& get_lobby(uint32_t idx)
 	{
-		if (lobbies_.find(idx) != lobbies_.end())
-		{
-			return lobbies_[idx];
-		}
-		else
-		{
-			return nullptr;
-		}
+		return *lobbies_[idx];
 	}
 
 	// 유저 로비에 담기
@@ -116,8 +110,7 @@ public:
 	{
 		for (uint32_t i = 0; i < manager.lobby_count_; ++i)
 		{
-			auto lobby = manager.get_lobby(i);
-			os << lobby->to_string() << "|";
+			os << manager.lobbies_[i]->to_string() << "|";
 		}
 
 		return os;

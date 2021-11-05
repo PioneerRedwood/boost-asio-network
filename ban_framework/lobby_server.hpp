@@ -42,7 +42,7 @@ public:
 		// lobby chatting stuff ~ 3000
 		CHAT_ALL,
 		CHAT_LOBBY,
-		CHAT_SPECIFIC,
+		CHAT_PRIVATE,
 		
 	};
 
@@ -285,7 +285,7 @@ public:
 		{
 			on_disconnect(client);
 
-			map_.erase(client->get_id());
+			clients_.erase(client->get_id());
 
 			client.reset();
 
@@ -303,7 +303,7 @@ public:
 
 		std::vector<uint32_t> temp;
 		//for (auto& client : clients_)
-		for (auto& client : map_)
+		for (auto& client : clients_)
 		{
 			if (client.second && client.second->connected())
 			{
@@ -326,7 +326,7 @@ public:
 		{
 			for (uint32_t c : temp)
 			{
-				map_.erase(c);
+				clients_.erase(c);
 			}
 
 			// 덱 삭제
@@ -367,7 +367,7 @@ private:
 				}
 				else
 				{
-					if (map_.size() > max_client_)
+					if (clients_.size() > max_client_)
 					{
 						logger::log("[DEBUG] connection refused MAX_CLIENT = %d", max_client_);
 					}
@@ -384,8 +384,8 @@ private:
 												
 						if (on_connect(conn, curr_id_))
 						{
-							//map_.insert(std::pair<uint32_t, std::shared_ptr<session>>(curr_id_, conn));
-							map_.try_emplace(curr_id_, conn);
+							//clients_.insert(std::pair<uint32_t, std::shared_ptr<session>>(curr_id_, conn));
+							clients_.try_emplace(curr_id_, conn);
 							conn->start(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), curr_id_);
 
 							logger::log("[DEBUG] [%d] connection approved", conn->get_id());
@@ -417,7 +417,7 @@ private:
 	{
 		logger::log("[DEBUG] removing client [%d]", client->get_id());
 
-
+		// 맵에서 삭제
 	}
 
 	void on_message(std::shared_ptr<session> client, msg& data)
@@ -447,9 +447,9 @@ private:
 
 			logger::log("[DEBUG] %d: %s connected", id, name.c_str());
 			// 2021-11-03 여기서 새롭게 유저 정보를 업데이트해도 될듯
-			if (map_.find(client->get_id()) != map_.end())
+			if (clients_.find(client->get_id()) != clients_.end())
 			{
-				map_[client->get_id()]->get_user_info().set_user_id(name);
+				clients_[client->get_id()]->get_user_info().set_user_id(name);
 			}
 			break;
 		}
@@ -459,13 +459,21 @@ private:
 			uint32_t lobby_num = UINT32_MAX;
 			data.read(lobby_num, 0);
 
-			// 송신 
-			msg temp;
-			temp.header_.id_ = type::LOBBY_INFO;
-			temp.write_string(lobby_manager_.get_lobby(lobby_num)->to_string());
+			if (lobby_num > 0 && lobby_num < lobby_manager_.get_lobby_count())
+			{
+				break;
+			}
+			else
+			{
+				// 송신 
+				msg temp;
+				temp.header_.id_ = type::LOBBY_INFO;
+				std::cout << "LOBBY_INFO " << temp << " " << lobby_num << "\n";
 
-			message_client(temp, client);
-			break;
+				temp.write_string(lobby_manager_.get_lobby(lobby_num).to_string());
+				message_client(temp, client);
+				break;
+			}			
 		}
 		case type::ALL_LOBBY_INFO:
 		{
@@ -476,7 +484,7 @@ private:
 			temp.header_.id_ = type::ALL_LOBBY_INFO;
 			temp.write_string(oss.str());
 
-			std::cout << "request ALL_LOBBY_INFO: " << lobby_manager_ << "\n";
+			std::cout << temp << "\n";
 
 			message_client(temp, client);
 			break;
@@ -488,10 +496,10 @@ private:
 
 			if (lobby_num < lobby_manager_.get_lobby_count())
 			{
-				if (lobby_manager_.get_lobby(lobby_num)->is_joinable())
+				if (lobby_manager_.get_lobby(lobby_num).is_joinable())
 				{
 					bool already_in = false;
-					for (uint32_t id : lobby_manager_.get_lobby(lobby_num)->parts_)
+					for (uint32_t id : lobby_manager_.get_lobby(lobby_num).parts_)
 					{
 						if (id == client->get_id())
 						{
@@ -510,18 +518,18 @@ private:
 
 					msg temp;
 					temp.header_.id_ = type::JOIN_LOBBY_OK;
-					lobby_manager_.get_lobby(lobby_num)->parts_.push_back(client->get_id());
+					lobby_manager_.get_lobby(lobby_num).parts_.push_back(client->get_id());
 
 					message_client(temp, client);
 
 					temp.header_.id_ = type::NEW_JOINED_LOBBY;
 					temp << client->get_id();
 
-					for (uint32_t id : lobby_manager_.get_lobby(lobby_num)->parts_)
+					for (uint32_t id : lobby_manager_.get_lobby(lobby_num).parts_)
 					{
 						if (client->get_id() != id)
 						{
-							message_client(temp, map_[id]);
+							message_client(temp, clients_[id]);
 						}
 					}
 				}
@@ -560,6 +568,7 @@ private:
 			// 전체에 메시지
 			msg temp;
 			temp.header_.id_ = type::CHAT_ALL;
+			temp << time.size() + contents.size();
 			temp.write_string(time);
 			temp.write_string(contents);
 
@@ -572,7 +581,7 @@ private:
 			// 1. 데이터 파싱
 			// 2. 
 		}
-		case type::CHAT_SPECIFIC:
+		case type::CHAT_PRIVATE:
 		{
 			// 귓속말
 		}
@@ -585,8 +594,7 @@ private:
 	tcp::acceptor acceptor_;
 
 	tsdeque<owned_message<lobby_msg_type>> read_deque_;
-	//std::deque<std::shared_ptr<session>> clients_;
-	std::unordered_map<uint32_t, std::shared_ptr<session>> map_;
+	std::unordered_map<uint32_t, std::shared_ptr<session>> clients_;
 
 	// 유저 아이디 추적
 	uint32_t curr_id_ = 0;

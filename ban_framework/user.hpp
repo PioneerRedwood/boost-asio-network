@@ -70,7 +70,6 @@ private:
 	std::time_t last_read_time_;
 	std::time_t last_write_time_;
 
-	
 	std::time_t validation_value_ = 10;
 
 	bool is_connection_time_over_ = false;

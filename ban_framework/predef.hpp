@@ -22,7 +22,6 @@
 #include <type_traits>
 #include <deque>
 
-
 // boost libs
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -36,3 +35,10 @@
 
 // mysql libs
 //#include <mysqlx/xdevapi.h>
+
+// global configution
+/*
+* 
+*/
+
+// DB 해야할 때가 왔음
