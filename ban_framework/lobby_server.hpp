@@ -518,6 +518,8 @@ private:
 
 					msg temp;
 					temp.header_.id_ = type::JOIN_LOBBY_OK;
+					temp << lobby_num;
+
 					lobby_manager_.get_lobby(lobby_num).parts_.push_back(client->get_id());
 
 					message_client(temp, client);
