@@ -15,34 +15,23 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="logger.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="utility.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="tcp_connection.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="predef.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="network_manager.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="tsdeque.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="lobby_server.hpp">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="lobby.hpp">
+    <ClCompile Include="protobuf_test.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="simple_packet.pb.cc">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="simple_packet.proto" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="simple_packet.pb.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
+    <Text Include="Errors\2021-09-21 link errors.txt" />
+    <Text Include="Errors\2021-09-22 link errors.txt" />
   </ItemGroup>
 </Project>

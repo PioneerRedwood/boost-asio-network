@@ -1,0 +1,1 @@
+C:\Users\Redwood\source\repos\boost-asio-network\211109-protobuf-test\x64\Debug\211109-protobuf-test.vcxproj.CopyComplete

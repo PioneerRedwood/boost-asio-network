@@ -1,0 +1,17 @@
+syntax="proto3";
+
+message PingPacket
+{
+	int32 id = 1;
+	string sendTime = 2;
+
+	enum Direction
+	{
+		SERVER_TO_CLIENT = 0;
+		CLIENT_TO_SERVER  = 1;
+		CLIENT_TO_CLIENT = 2;
+		SERVER_TO_SERVER = 3;
+	}
+
+	Direction direction = 3;
+}
