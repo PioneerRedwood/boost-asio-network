@@ -69,7 +69,8 @@ public:
 	private:
 		io::io_context& context_;
 		tcp::socket socket_;
-		io::io_context::strand strand_;
+		io::io_context::strand read_strand_;
+		io::io_context::strand write_strand_;
 		user user_;
 
 		// 메시지 수신 큐
@@ -82,7 +83,7 @@ public:
 		bool is_connected_ = false;
 	public:
 		lobby_session(io::io_context& context, tcp::socket socket, tsdeque<owned_message<T>>& read_deque)
-			: context_(context), socket_(std::move(socket)), strand_(context), read_deque_(read_deque), user_(0, 0)
+			: context_(context), socket_(std::move(socket)), read_strand_(context), write_strand_(context), read_deque_(read_deque), user_(0, 0)
 		{}
 
 		void start(std::time_t connection_time, uint32_t session_id)
@@ -112,7 +113,7 @@ public:
 
 		void send(const message<T>& msg)
 		{
-			io::post(context_, strand_.wrap([this, msg]()->void
+			io::post(context_, write_strand_.wrap([this, msg]()->void
 				{
 					bool is_writing_msg = !write_deque_.empty();
 					write_deque_.push_back(msg);
@@ -134,7 +135,7 @@ public:
 		{
 			// write header
 			io::async_write(socket_, io::buffer(&write_deque_.front().header_, sizeof(uint32_t)),
-				strand_.wrap([this](std::error_code ec, size_t bytes)->void
+				write_strand_.wrap([this](std::error_code ec, size_t bytes)->void
 					{
 						if (!ec)
 						{
@@ -143,7 +144,7 @@ public:
 							{
 								// write body
 								io::async_write(socket_, io::buffer(write_deque_.front().body_.data(), write_deque_.front().body_.size()),
-									strand_.wrap([this](std::error_code ec, size_t bytes)->void
+									write_strand_.wrap([this](std::error_code ec, size_t bytes)->void
 										{
 											if (!ec)
 											{
@@ -184,7 +185,7 @@ public:
 		{
 			// read header
 			io::async_read(socket_, io::buffer(&temp_msg_.header_, sizeof(ban::message_header<T>)),
-				strand_.wrap([this](std::error_code ec, size_t bytes)->void
+				read_strand_.wrap([this](std::error_code ec, size_t bytes)->void
 					{
  						if (!ec)
 						{
@@ -196,7 +197,7 @@ public:
 
 								// read body
 								io::async_read(socket_, io::buffer(temp_msg_.body_.data(), temp_msg_.body_.size()),
-									strand_.wrap([this](std::error_code ec, size_t bytes)->void
+									read_strand_.wrap([this](std::error_code ec, size_t bytes)->void
 										{
 											if (!ec)
 											{
