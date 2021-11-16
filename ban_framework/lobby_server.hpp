@@ -288,12 +288,7 @@ public:
 
 			clients_.erase(client->get_id());
 
-			client.reset();
-
-			// 덱에서 삭제
-			//clients_.erase(
-			//	std::remove(clients_.begin(), clients_.end(), client), clients_.end());
-			
+			client.reset();			
 		}
 	}
 
@@ -303,7 +298,6 @@ public:
 		bool is_invalid = false;
 
 		std::vector<uint32_t> temp;
-		//for (auto& client : clients_)
 		for (auto& client : clients_)
 		{
 			if (client.second && client.second->connected())
@@ -329,10 +323,6 @@ public:
 			{
 				clients_.erase(c);
 			}
-
-			// 덱 삭제
-			//clients_.erase(
-			//	std::remove(clients_.begin(), clients_.end(), nullptr), clients_.end());
 		}
 	}
 
@@ -385,7 +375,6 @@ private:
 												
 						if (on_connect(conn, curr_id_))
 						{
-							//clients_.insert(std::pair<uint32_t, std::shared_ptr<session>>(curr_id_, conn));
 							clients_.try_emplace(curr_id_, conn);
 							conn->start(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), curr_id_);
 
@@ -407,7 +396,6 @@ private:
 		msg data;
 		data.header_.id_ = type::ACCEPT_CONNECT;
 
-		// 유저 세션 아이디 전송 
 		data << id;
 		std::cout << id << "\n";
 		client->send(data);
